@@ -1,7 +1,7 @@
+from logger import logging_setup
 import logging
 import argparse
 import os
-import sys
 from matplotlib import pyplot as plt
 import torch
 import torch.nn as nn
@@ -12,12 +12,6 @@ from rl.networks.model import Policy
 
 from crowd_sim import *
 
-def logging_setup(log_file):
-	file_handler = logging.FileHandler(log_file, mode='w')
-	stdout_handler = logging.StreamHandler(sys.stdout)
-	level = logging.INFO
-	logging.basicConfig(level=level, handlers=[stdout_handler, file_handler],
-						format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
 
 def main():
