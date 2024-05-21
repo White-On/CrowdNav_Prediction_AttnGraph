@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from gst_updated.src.gumbel_social_transformer.utils import _get_clones
+import logging
 
 class GumbelSocialTransformer(nn.Module):
     def __init__(self, d_motion, d_model, nhead_nodes, nhead_edges, nlayer, dim_feedforward=512, dim_hidden=32, \
@@ -9,11 +10,11 @@ class GumbelSocialTransformer(nn.Module):
         if ghost:
             if nhead_edges == 0:
                 raise RuntimeError("Full connectivity conflicts with the Ghost setting.")
-            print("Ghost version.")
+            logging.info("[bold]Ghost version.[/]",extra={'markup':True})
             from gst_updated.src.gumbel_social_transformer.edge_selector_ghost import EdgeSelector
             from gst_updated.src.gumbel_social_transformer.node_encoder_layer_ghost import NodeEncoderLayer
         else:
-            print("No ghost version.")
+            logging.info("[bold]No Ghost version.[/]",extra={'markup':True})
             from gst_updated.src.gumbel_social_transformer.edge_selector_no_ghost import EdgeSelector
             from gst_updated.src.gumbel_social_transformer.node_encoder_layer_no_ghost import NodeEncoderLayer
         if nhead_edges != 0:
@@ -38,7 +39,7 @@ class GumbelSocialTransformer(nn.Module):
         self.nlayer = nlayer
         self.nhead_nodes = nhead_nodes
         self.nhead_edges = nhead_edges
-        print("new gst")
+        logging.info("[bold]GumbelSocialTransformer model is initialized.[/]",extra={'markup':True})
 
     def forward(self, x, A, attn_mask, tau=1., hard=False, device='cuda:0'):
         r"""

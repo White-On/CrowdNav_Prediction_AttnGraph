@@ -110,19 +110,18 @@ class CrowdSim(gym.Env):
 
         self.case_counter = {'train': 0, 'test': 0, 'val': 0}
 
-        logging.info('human number: {}'.format(self.human_num))
+        logging.info(f"{'human number:':<25}{self.human_num:>25}")
         if self.randomize_attributes:
-            logging.info("Randomize human's radius and preferred speed")
+            logging.info(f"{'random human attributes':<25}{'True':>25}",extra={"color":'green'})
         else:
-            logging.info("Not randomize human's radius and preferred speed")
+            logging.info(f"{'random human attributes':<25}{'False':>25}",extra={"color":'red'})
 
-        logging.info('Circle width: {}'.format(self.circle_radius))
-
+        logging.info(f"{'circle width:':<25}{self.circle_radius:>25}")
 
         self.robot_fov = np.pi * config.robot.FOV
         self.human_fov = np.pi * config.humans.FOV
-        logging.info('robot FOV %f', self.robot_fov)
-        logging.info('humans FOV %f', self.human_fov)
+        logging.info(f"{'robot FOV:':<25}{self.robot_fov:>25}")
+        logging.info(f"{'humans FOV:':<25}{self.human_fov:>25}")
 
 
         # set dummy human and dummy robot

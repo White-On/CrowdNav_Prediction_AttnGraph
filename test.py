@@ -76,7 +76,7 @@ def main():
 		Config = getattr(model_arguments, 'Config')
 
 	except:
-		print('Failed to get Config function from ', test_args.model_dir)
+		logging.error('Failed to get Config function from ', test_args.model_dir, '/configs/config.py')
 		from crowd_nav.configs.config import Config
 	env_config = config = Config()
 
@@ -115,7 +115,7 @@ def main():
 
 
 	load_path=os.path.join(test_args.model_dir,'checkpoints', test_args.test_model)
-	print(load_path)
+	logging.info('Load model from: ' + load_path)
 
 
 	# create an environment

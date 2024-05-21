@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import logging
 
 from crowd_sim.envs.utils.info import *
 
@@ -111,9 +112,11 @@ def evaluate(actor_critic, eval_envs, num_processes, device, test_size, logging,
                     eval_episode_rewards.append(info['episode']['r'])
 
         # an episode ends!
-        print('')
-        print('Reward={}'.format(episode_rew))
-        print('Episode', k, 'ends in', stepCounter)
+        # print('')
+        # print('Reward={}'.format(episode_rew))
+        # print('Episode', k, 'ends in', stepCounter)
+        logging.info('Reward={}'.format(episode_rew.item()))
+        logging.info('Episode {} ends in {} steps'.format(k, stepCounter))
         all_path_len.append(path_len)
         too_close_ratios.append(too_close/stepCounter*100)
 
@@ -121,20 +124,22 @@ def evaluate(actor_critic, eval_envs, num_processes, device, test_size, logging,
         if isinstance(infos[0]['info'], ReachGoal):
             success += 1
             success_times.append(global_time)
-            print('Success')
+            # print('Success')
+            logging.info('✅ [bold green]Success[/]',extra={"markup":True})
         elif isinstance(infos[0]['info'], Collision):
             collision += 1
             collision_cases.append(k)
             collision_times.append(global_time)
-            print('Collision')
+            logging.info('💥 [bold red]Collision[/]',extra={"markup":True})
         elif isinstance(infos[0]['info'], Timeout):
             timeout += 1
             timeout_cases.append(k)
             timeout_times.append(time_limit)
-            print('Time out')
+            logging.info('⌛[bold yellow]Timeout[/]',extra={"markup":True})
         elif isinstance(infos[0]['info'] is None):
             pass
         else:
+            logging.error('Invalid end signal from environment')
             raise ValueError('Invalid end signal from environment')
 
     # all episodes end
@@ -146,16 +151,18 @@ def evaluate(actor_critic, eval_envs, num_processes, device, test_size, logging,
         success_times) if success_times else time_limit  # baseEnv.env.time_limit
 
     # logging
-    logging.info(
-        'Testing success rate: {:.2f}, collision rate: {:.2f}, timeout rate: {:.2f}, '
-        'nav time: {:.2f}, path length: {:.2f}, average intrusion ratio: {:.2f}%, '
+    logging.info('[bold underline]Test Summary:[/]\n'
+        '✅ success rate: {:.2%},\n💥 collision rate: {:.2%},\n⌛ timeout rate: {:.2%},\n'
+        'average navigation time: {:.2f},\naverage path length: {:.2f},\naverage intrusion ratio: {:.2f}%,\n'
         'average minimal distance during intrusions: {:.2f}'.
             format(success_rate, collision_rate, timeout_rate, avg_nav_time, np.mean(all_path_len),
-                   np.mean(too_close_ratios), np.mean(min_dist)))
+                   np.mean(too_close_ratios), np.mean(min_dist)), extra={"markup": True})
 
     logging.info('Collision cases: ' + ' '.join([str(x) for x in collision_cases]))
     logging.info('Timeout cases: ' + ' '.join([str(x) for x in timeout_cases]))
-    print(" Evaluation using {} episodes: mean reward {:.5f}\n".format(
+    # print(" Evaluation using {} episodes: mean reward {:.5f}\n".format(
+    #     len(eval_episode_rewards), np.mean(eval_episode_rewards)))
+    logging.info("Evaluation using {} episodes: mean reward {:.5f}\n".format(
         len(eval_episode_rewards), np.mean(eval_episode_rewards)))
 
     eval_envs.close()

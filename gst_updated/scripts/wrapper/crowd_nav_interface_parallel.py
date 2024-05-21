@@ -5,6 +5,7 @@ import pickle
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 
 def seq_to_graph(seq_, seq_rel, attn_mech='rel_conv'):
     """
@@ -38,9 +39,8 @@ class CrowdNavPredInterfaceMultiEnv(object):
         model_checkpoint = torch.load(join(checkpoint_dir, model_filename), map_location=device)
         self.model.load_state_dict(model_checkpoint['model_state_dict'])
         self.model.eval()
-        print("LOADED MODEL")
-        print("device: ", device)
-        print()
+        logging.info("LOADED MODEL")
+        logging.info(f"device: {device}")
 
     def forward(self, input_traj,input_binary_mask, sampling = True):
         """

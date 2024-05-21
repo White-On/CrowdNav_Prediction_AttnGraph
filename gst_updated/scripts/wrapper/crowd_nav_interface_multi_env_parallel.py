@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from gst_updated.src.mgnn.utils import seq_to_graph
 from gst_updated.src.gumbel_social_transformer.st_model import st_model
+import logging
 
 
 
@@ -28,9 +29,8 @@ class CrowdNavPredInterfaceMultiEnv(object):
         model_checkpoint = torch.load(join(checkpoint_dir, model_filename), map_location=device)
         self.model.load_state_dict(model_checkpoint['model_state_dict'])
         self.model.eval()
-        print("LOADED MODEL")
-        print("device: ", device)
-        print()
+        logging.info("LOADED MODEL")
+        logging.info("device: ", device)
 
     def forward(self, input_traj,input_binary_mask, sampling = True):
         """
