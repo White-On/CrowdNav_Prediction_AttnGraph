@@ -8,6 +8,9 @@ import torch.nn as nn
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from logger import logging_setup
+import logging
+
 from rl import ppo
 from rl.networks import network_utils
 from arguments import get_args
@@ -30,8 +33,10 @@ def main():
 	# create a directory for saving the logs and weights
 	if not os.path.exists(algo_args.output_dir):
 		os.makedirs(algo_args.output_dir)
+		logging_setup(os.path.join(algo_args.output_dir, 'train.log'))
 	# if output_dir exists and overwrite = False
 	elif not algo_args.overwrite:
+		logging.error('output_dir already exists! (and overwrite = False)')
 		raise ValueError('output_dir already exists!')
 
 	save_config_dir = os.path.join(algo_args.output_dir, 'configs')
@@ -105,7 +110,7 @@ def main():
 	if algo_args.resume:
 		load_path = config.training.load_path
 		actor_critic.load_state_dict(torch.load(load_path))
-		print("Loaded the following checkpoint:", load_path)
+		logging.info("Loaded the following checkpoint:", load_path)
 
 
 	# allow the usage of multiple GPUs to increase the number of examples processed simultaneously
@@ -221,7 +226,16 @@ def main():
 		if j % algo_args.log_interval == 0 and len(episode_rewards) > 1:
 			total_num_steps = (j + 1) * algo_args.num_processes * algo_args.num_steps
 			end = time.time()
-			print(
+			# print(
+			# 	"Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward "
+			# 	"{:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+			# 		.format(j, total_num_steps,
+			# 				int(total_num_steps / (end - start)),
+			# 				len(episode_rewards), np.mean(episode_rewards),
+			# 				np.median(episode_rewards), np.min(episode_rewards),
+			# 				np.max(episode_rewards), dist_entropy, value_loss,
+			# 				action_loss))
+			logging.info(
 				"Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward "
 				"{:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
 					.format(j, total_num_steps,
