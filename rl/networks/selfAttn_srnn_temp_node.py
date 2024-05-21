@@ -350,6 +350,8 @@ class selfAttn_merge_SRNN(nn.Module):
 
         dummy_human_mask = [0] * self.human_num
         dummy_human_mask[0] = 1
+        # enforce the no_cuda flag -> can be change in the arguments.py file of the model
+        # self.args.no_cuda = True
         if self.args.no_cuda:
             self.dummy_human_mask = Variable(torch.Tensor([dummy_human_mask]).cpu())
         else:

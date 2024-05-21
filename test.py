@@ -43,10 +43,11 @@ def main():
 	# if not found, import from the default directory
 	try:
 		model_dir_string = model_dir_temp.replace('/', '.') + '.arguments'
+		logging.INFO(f'Importing arguments from {model_dir_string}')
 		model_arguments = import_module(model_dir_string)
 		get_args = getattr(model_arguments, 'get_args')
 	except:
-		print('Failed to get get_args function from ', test_args.model_dir, '/arguments.py')
+		logging.ERROR('Failed to get get_args function from ', test_args.model_dir, '/arguments.py')
 		from arguments import get_args
 
 	algo_args = get_args()
