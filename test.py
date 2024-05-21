@@ -12,11 +12,19 @@ from rl.networks.model import Policy
 
 from crowd_sim import *
 
+def logging_setup(log_file):
+	file_handler = logging.FileHandler(log_file, mode='w')
+	stdout_handler = logging.StreamHandler(sys.stdout)
+	level = logging.INFO
+	logging.basicConfig(level=level, handlers=[stdout_handler, file_handler],
+						format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
 
 def main():
 	"""
 	The main function for testing a trained model
 	"""
+
 	# the following parameters will be determined for each test run
 	parser = argparse.ArgumentParser('Parse configuration file')
 	# the model directory that we are testing
@@ -35,6 +43,19 @@ def main():
 	if test_args.save_slides:
 		test_args.visualize = True
 
+	# configure logging and device
+	# print test result in log file
+	log_file = os.path.join(test_args.model_dir,'test')
+	if not os.path.exists(log_file):
+		os.mkdir(log_file)
+	if test_args.visualize:
+		log_file = os.path.join(test_args.model_dir, 'test', 'test_visual.log')
+	else:
+		log_file = os.path.join(test_args.model_dir, 'test', 'test_' + test_args.test_model + '.log')
+
+	logging_setup(log_file)
+	
+
 	from importlib import import_module
 	model_dir_temp = test_args.model_dir
 	if model_dir_temp.endswith('/'):
@@ -43,11 +64,11 @@ def main():
 	# if not found, import from the default directory
 	try:
 		model_dir_string = model_dir_temp.replace('/', '.') + '.arguments'
-		logging.INFO(f'Importing arguments from {model_dir_string}')
+		logging.info(f'Importing arguments from {model_dir_string}')
 		model_arguments = import_module(model_dir_string)
 		get_args = getattr(model_arguments, 'get_args')
 	except:
-		logging.ERROR('Failed to get get_args function from ', test_args.model_dir, '/arguments.py')
+		logging.error('Failed to get get_args function from ', test_args.model_dir, '/arguments.py')
 		from arguments import get_args
 
 	algo_args = get_args()
@@ -65,27 +86,6 @@ def main():
 		from crowd_nav.configs.config import Config
 	env_config = config = Config()
 
-
-	# configure logging and device
-	# print test result in log file
-	log_file = os.path.join(test_args.model_dir,'test')
-	if not os.path.exists(log_file):
-		os.mkdir(log_file)
-	if test_args.visualize:
-		log_file = os.path.join(test_args.model_dir, 'test', 'test_visual.log')
-	else:
-		log_file = os.path.join(test_args.model_dir, 'test', 'test_' + test_args.test_model + '.log')
-
-
-
-	file_handler = logging.FileHandler(log_file, mode='w')
-	stdout_handler = logging.StreamHandler(sys.stdout)
-	level = logging.INFO
-	logging.basicConfig(level=level, handlers=[stdout_handler, file_handler],
-						format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-
-	logging.info('robot FOV %f', config.robot.FOV)
-	logging.info('humans FOV %f', config.humans.FOV)
 
 	torch.manual_seed(algo_args.seed)
 	torch.cuda.manual_seed_all(algo_args.seed)
