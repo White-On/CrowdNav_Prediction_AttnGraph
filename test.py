@@ -1,4 +1,4 @@
-from logger import logging_setup
+from logger import logging_setup, display_config
 import logging
 import argparse
 import os
@@ -33,6 +33,8 @@ def main():
 	parser.add_argument('--render_traj', default=False, action='store_true')
 	# whether to save slide show of episodes
 	parser.add_argument('--save_slides', default=False, action='store_true')
+	# verbose mode
+	parser.add_argument('--verbose', default=True, action='store_true')
 	test_args = parser.parse_args()
 	if test_args.save_slides:
 		test_args.visualize = True
@@ -48,8 +50,9 @@ def main():
 		log_file = os.path.join(test_args.model_dir, 'test', 'test_' + test_args.test_model + '.log')
 
 	logging_setup(log_file)
-	
 
+	
+	
 	from importlib import import_module
 	model_dir_temp = test_args.model_dir
 	if model_dir_temp.endswith('/'):
@@ -58,11 +61,12 @@ def main():
 	# if not found, import from the default directory
 	try:
 		model_dir_string = model_dir_temp.replace('/', '.') + '.arguments'
-		logging.info(f'Importing arguments from {model_dir_string}')
+		logging.info(f'Importing arguments from {model_dir_string}.py')
 		model_arguments = import_module(model_dir_string)
 		get_args = getattr(model_arguments, 'get_args')
 	except:
-		logging.error('Failed to get get_args function from ', test_args.model_dir, '/arguments.py')
+		logging.error('Failed to get get_args function from ', test_args.model_dir, '/arguments.py\
+				\nImporting arguments from default directory.')
 		from arguments import get_args
 
 	algo_args = get_args()
@@ -74,12 +78,16 @@ def main():
 		model_dir_string = model_dir_temp.replace('/', '.') + '.configs.config'
 		model_arguments = import_module(model_dir_string)
 		Config = getattr(model_arguments, 'Config')
+		logging.info(f'Importing Config from {model_dir_string}.py')
 
 	except:
 		logging.error('Failed to get Config function from ', test_args.model_dir, '/configs/config.py')
 		from crowd_nav.configs.config import Config
 	env_config = config = Config()
 
+	if test_args.verbose:
+		display_config(test_args,'Test Arguments')
+		display_config(algo_args,'Arguments [bold]from argument.py[/]')
 
 	torch.manual_seed(algo_args.seed)
 	torch.cuda.manual_seed_all(algo_args.seed)
@@ -148,6 +156,8 @@ def main():
 		actor_critic = None
 
 	test_size = config.env.test_size
+
+	exit(0)
 
 	# call the evaluation function
 	evaluate(actor_critic, envs, 1, device, test_size, logging, config, algo_args, test_args.visualize)
