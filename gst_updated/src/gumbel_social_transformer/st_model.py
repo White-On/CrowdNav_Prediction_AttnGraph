@@ -6,6 +6,7 @@ that follows spatial -> temporal encoding manners.
 
 import torch
 import torch.nn as nn
+import logging
 
 # from src.social_transformer.social_transformer import SpatialSocialTransformerEncoder
 from gst_updated.src.gumbel_social_transformer.gumbel_social_transformer import GumbelSocialTransformer
@@ -187,7 +188,8 @@ class st_model(nn.Module):
             raise RuntimeError('The temporal component is not lstm nor faster_lstm.')
         ## others
         self.args = args
-        print("new st model")
+        logging.info("new st model")
+        
 
     def raw2gaussian(self, prob_raw):
         """
