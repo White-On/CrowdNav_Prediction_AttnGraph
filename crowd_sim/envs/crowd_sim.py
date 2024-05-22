@@ -1,8 +1,6 @@
 import logging
 import gym
 import numpy as np
-import rvo2
-import random
 import copy
 
 from numpy.linalg import norm

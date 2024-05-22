@@ -1,11 +1,9 @@
-import os
 
 import gym
 import numpy as np
 import torch
 import logging
 from gym.spaces.box import Box
-from gym.spaces.dict import Dict
 
 from baselines import bench
 from baselines.common.atari_wrappers import make_atari, wrap_deepmind
@@ -20,16 +18,6 @@ from rl.vec_env.vec_pretext_normalize import VecPretextNormalize
 
 try:
     import dm_control2gym
-except ImportError:
-    pass
-
-try:
-    import roboschool
-except ImportError:
-    pass
-
-try:
-    import pybullet_envs
 except ImportError:
     pass
 
