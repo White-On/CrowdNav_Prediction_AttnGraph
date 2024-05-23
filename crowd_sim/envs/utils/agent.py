@@ -145,7 +145,7 @@ class Agent(object):
         if self.kinematics == 'holonomic':
             px = self.px + action.vx * delta_t
             py = self.py + action.vy * delta_t
-        # unicycle
+        # unicycle or bicycle
         else:
             # naive dynamics
             # theta = self.theta + action.r * delta_t # if action.r is w
