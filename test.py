@@ -91,10 +91,13 @@ def main():
 	if test_args.verbose:
 		display_config(test_args,'Test Arguments')
 		display_config(algo_args,'Arguments [bold]from argument.py[/]')
-		conf = read_config(Path(test_args.model_dir) / 'crowdNav.config')
-		display_config(Namespace(**conf.algorithm_config),'Environment Config')
-		algo_args = Namespace(**conf.algorithm_config)
-		algo_args.cuda = not algo_args.no_cuda and torch.cuda.is_available()
+
+		# TODO: make use of the crowdNav.config file for this part
+		
+		# conf = read_config(Path(test_args.model_dir) / 'crowdNav.config')
+		# display_config(Namespace(**conf.algorithm_config),'Environment Config')
+		# algo_args = Namespace(**conf.algorithm_config)
+		# algo_args.cuda = not algo_args.no_cuda and torch.cuda.is_available()
 
 		assert algo_args.algo in ['a2c', 'ppo', 'acktr']
 		if algo_args.recurrent_policy:

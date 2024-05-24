@@ -1,3 +1,6 @@
+# Still in development phase
+# In fact the basic config is hell to read and to change too
+
 from configparser import ConfigParser
 from pathlib import Path
 from argparse import Namespace
