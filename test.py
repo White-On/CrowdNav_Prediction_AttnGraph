@@ -1,8 +1,12 @@
 from logger import logging_setup, display_config
 import logging
+
 import argparse
+from argparse import Namespace
 import os
+
 from matplotlib import pyplot as plt
+
 import torch
 import torch.nn as nn
 
@@ -12,7 +16,8 @@ from rl.networks.model import Policy
 
 from crowd_sim import *
 
-
+from config_reader import read_config
+from pathlib import Path
 
 def main():
 	"""
@@ -51,8 +56,6 @@ def main():
 
 	logging_setup(log_file)
 
-	
-	
 	from importlib import import_module
 	model_dir_temp = test_args.model_dir
 	if model_dir_temp.endswith('/'):
@@ -88,6 +91,15 @@ def main():
 	if test_args.verbose:
 		display_config(test_args,'Test Arguments')
 		display_config(algo_args,'Arguments [bold]from argument.py[/]')
+		conf = read_config(Path(test_args.model_dir) / 'crowdNav.config')
+		display_config(Namespace(**conf.algorithm_config),'Environment Config')
+		algo_args = Namespace(**conf.algorithm_config)
+		algo_args.cuda = not algo_args.no_cuda and torch.cuda.is_available()
+
+		assert algo_args.algo in ['a2c', 'ppo', 'acktr']
+		if algo_args.recurrent_policy:
+			assert algo_args.algo in ['a2c', 'ppo'], \
+				'Recurrent policy is not implemented for ACKTR'
 
 	torch.manual_seed(algo_args.seed)
 	torch.cuda.manual_seed_all(algo_args.seed)
@@ -157,7 +169,7 @@ def main():
 
 	test_size = config.env.test_size
 
-
+	exit(0)
 	# call the evaluation function
 	evaluate(actor_critic, envs, 1, device, test_size, logging, config, algo_args, test_args.visualize)
 

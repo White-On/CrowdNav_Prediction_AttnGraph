@@ -112,9 +112,6 @@ def evaluate(actor_critic, eval_envs, num_processes, device, test_size, logging,
                     eval_episode_rewards.append(info['episode']['r'])
 
         # an episode ends!
-        # print('')
-        # print('Reward={}'.format(episode_rew))
-        # print('Episode', k, 'ends in', stepCounter)
         logging.info('Reward={}'.format(episode_rew.item()))
         logging.info('Episode {} ends in {} steps'.format(k, stepCounter))
         all_path_len.append(path_len)
