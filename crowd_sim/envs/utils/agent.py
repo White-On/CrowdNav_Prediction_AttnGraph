@@ -35,6 +35,11 @@ class Agent(object):
         self.time_step = config.env.time_step
         self.policy.time_step = config.env.time_step
 
+        # TODO collect collection of goals from config file
+        self.collection_goal_coordinates = np.random.uniform(-10, 10, (5, 2))
+        self.goal_cusor = 0
+        self.relative_speed = 1.0
+
 
     def print_info(self):
         logging.info('Agent is {} and has {} kinematic constraint'.format(
@@ -116,6 +121,24 @@ class Agent(object):
 
     def get_goal_position(self):
         return self.gx, self.gy
+    
+    def add_goal(self, goal: list):
+        self.collection_goal_coordinates.append(goal)
+
+    def get_current_goal(self):
+        # TODO add to reach more than one goal in the future
+        return self.collection_goal_coordinates[self.goal_cusor]
+
+    def next_goal(self):   
+        self.goal_cusor += 1
+    
+    def relative_state(self):
+        robot_pos = self.get_position()
+        relative_goal = np.array(self.get_current_goal()) - np.array(robot_pos)
+        return [self.relative_speed,self.theta ,relative_goal[0], relative_goal[1]]
+    
+    def get_agent_goal_collection(self):
+        return self.collection_goal_coordinates
 
     def get_velocity(self):
         return self.vx, self.vy

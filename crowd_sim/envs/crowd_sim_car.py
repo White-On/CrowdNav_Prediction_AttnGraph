@@ -2,6 +2,9 @@ import gym
 import numpy as np
 
 from crowd_sim.envs.crowd_sim_pred import CrowdSimPred
+from crowd_sim.envs.utils.info import *
+from numpy.linalg import norm
+from crowd_sim.envs.utils.action import ActionRot
 
 
 class CrowdSimCar(CrowdSimPred):
@@ -19,7 +22,6 @@ class CrowdSimCar(CrowdSimPred):
         """
         super(CrowdSimCar, self).__init__()
         self.pred_method = None
-
         # to receive data from gst pred model
         self.gst_out_traj = None
 
@@ -31,35 +33,220 @@ class CrowdSimCar(CrowdSimPred):
         # we set the max and min of action/observation space as inf
         # clip the action and observation as you need
 
-        d = {}
-        # robot node: num_visible_humans, px, py, r, gx, gy, v_pref, theta
-        d['robot_node'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 7,), dtype=np.float32)
+        observation_space = {}
+        forseen_index = 1
+        # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
+        vehicle_speed_boundries = [-1, 4]
+        vehicle_angle_boundries = [-np.pi/6, np.pi/6]
+        objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
+        all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
+        observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
+        
+
+        # # robot node: num_visible_humans, px, py, r, gx, gy, v_pref, theta
+        # observation_space['robot_node'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 7,), dtype=np.float32)
         # only consider all temporal edges (human_num+1) and spatial edges pointing to robot (human_num)
-        d['temporal_edges'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 2,), dtype=np.float32)
+        observation_space['temporal_edges'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 2,), dtype=np.float32)
         '''
         format of spatial_edges: [max_human_num, [state_t, state_(t+1), ..., state(t+self.pred_steps)]]
         '''
-
         # predictions only include mu_x, mu_y (or px, py)
         self.spatial_edge_dim = int(2*(self.predict_steps+1))
 
-        d['spatial_edges'] = gym.spaces.Box(low=-np.inf, high=np.inf,
+        observation_space['spatial_edges'] = gym.spaces.Box(low=-np.inf, high=np.inf,
                             shape=(self.config.sim.human_num + self.config.sim.human_num_range, self.spatial_edge_dim),
                             dtype=np.float32)
 
         # masks for gst pred model
         # whether each human is visible to robot (ordered by human ID, should not be sorted)
-        d['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
+        observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
                                             shape=(self.config.sim.human_num + self.config.sim.human_num_range,),
                                             dtype=np.bool)
 
         # number of humans detected at each timestep
-        d['detected_human_num'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)
+        observation_space['detected_human_num'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)
 
-        self.observation_space = gym.spaces.Dict(d)
+        self.observation_space = gym.spaces.Dict(observation_space)
 
-        high = np.inf * np.ones([2, ])
-        self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
+        action_space_boundries = np.vstack((vehicle_angle_boundries, vehicle_speed_boundries))
+        self.action_space = gym.spaces.Box(action_space_boundries[:,0], action_space_boundries[:,1], dtype=np.float32)
+
+    def reset(self, phase='train', test_case=None):
+        """
+        Reset the environment
+        :return:
+        """
+
+        if self.phase is not None:
+            phase = self.phase
+        if self.test_case is not None:
+            test_case=self.test_case
+
+        if self.robot is None:
+            raise AttributeError('robot has to be set!')
+        assert phase in ['train', 'val', 'test']
+        if test_case is not None:
+            self.case_counter[phase] = test_case # test case is passed in to calculate specific seed to generate case
+        self.global_time = 0
+        self.step_counter = 0
+        self.id_counter = 0
+
+
+        self.humans = []
+        # self.human_num = self.config.sim.human_num
+        # initialize a list to store observed humans' IDs
+        self.observed_human_ids = []
+
+        # train, val, and test phase should start with different seed.
+        # case capacity: the maximum number for train(max possible int -2000), val(1000), and test(1000)
+        # val start from seed=0, test start from seed=case_capacity['val']=1000
+        # train start from self.case_capacity['val'] + self.case_capacity['test']=2000
+        counter_offset = {'train': self.case_capacity['val'] + self.case_capacity['test'],
+                          'val': 0, 'test': self.case_capacity['val']}
+
+        # here we use a counter to calculate seed. The seed=counter_offset + case_counter
+        self.rand_seed = counter_offset[phase] + self.case_counter[phase] + self.thisSeed
+        np.random.seed(self.rand_seed)
+
+        self.generate_robot_humans(phase)
+
+        # record px, py, r of each human, used for crowd_sim_pc env
+        self.cur_human_states = np.zeros((self.max_human_num, 3))
+        for i in range(self.human_num):
+            self.cur_human_states[i] = np.array([self.humans[i].px, self.humans[i].py, self.humans[i].radius])
+
+        # case size is used to make sure that the case_counter is always between 0 and case_size[phase]
+        self.case_counter[phase] = (self.case_counter[phase] + int(1*self.nenv)) % self.case_size[phase]
+
+        # initialize potential and angular potential
+        rob_goal_vec = np.array([self.robot.gx, self.robot.gy]) - np.array([self.robot.px, self.robot.py])
+        self.potential = -abs(np.linalg.norm(rob_goal_vec))
+        self.angle = np.arctan2(rob_goal_vec[1], rob_goal_vec[0]) - self.robot.theta
+        if self.angle > np.pi:
+            # self.abs_angle = np.pi * 2 - self.abs_angle
+            self.angle = self.angle - 2 * np.pi
+        elif self.angle < -np.pi:
+            self.angle = self.angle + 2 * np.pi
+
+        # get robot observation
+        ob = self.generate_ob(reset=True, sort=self.config.args.sort_humans)
+
+        return ob
+    
+    def step(self, action, update=True):
+        """
+        step function
+        Compute actions for all agents, detect collision, update environment and return (ob, reward, done, info)
+        """
+        if self.robot.policy.name == 'ORCA':
+            # assemble observation for orca: px, py, vx, vy, r
+            # include all observable humans from t to t+t_pred
+            _, _, human_visibility = self.get_num_human_in_fov()
+            # [self.predict_steps + 1, self.human_num, 4]
+            human_states = copy.deepcopy(self.calc_human_future_traj(method='truth'))
+            # append the radius, convert it to [human_num*(self.predict_steps+1), 5] by treating each predicted pos as a new human
+            human_states = np.concatenate((human_states.reshape((-1, 4)),
+                                           np.tile(self.last_human_states[:, -1], self.predict_steps+1).reshape((-1, 1))),
+                                          axis=1)
+            # get orca action
+            action = self.robot.act(human_states.tolist())
+        else:
+            action = self.robot.policy.clip_action(action, self.robot.v_pref)
+
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
+            self.desiredVelocity[0] = np.clip(self.desiredVelocity[0] + action.v, -self.robot.v_pref, self.robot.v_pref)
+            action = ActionRot(self.desiredVelocity[0], action.r)
+
+            # if action.r is delta theta
+            action = ActionRot(self.desiredVelocity[0], action.r)
+            if self.record:
+                self.episodeRecoder.unsmoothed_actions.append(list(action))
+
+            action = self.smooth_action(action)
+
+
+
+        human_actions = self.get_human_actions()
+
+        # need to update self.human_future_traj in testing to calculate number of intrusions
+        if self.phase == 'test':
+            # use ground truth future positions of humans
+            self.calc_human_future_traj(method='truth')
+
+        # compute reward and episode info
+        reward, done, episode_info = self.calc_reward(action, danger_zone='future')
+
+
+        if self.record:
+
+            self.episodeRecoder.actionList.append(list(action))
+            self.episodeRecoder.positionList.append([self.robot.px, self.robot.py])
+            self.episodeRecoder.orientationList.append(self.robot.theta)
+
+            if done:
+                self.episodeRecoder.robot_goal.append([self.robot.gx, self.robot.gy])
+                self.episodeRecoder.saveEpisode(self.case_counter['test'])
+
+        # apply action and update all agents
+        self.robot.step(action)
+        for i, human_action in enumerate(human_actions):
+            self.humans[i].step(human_action)
+            self.cur_human_states[i] = np.array([self.humans[i].px, self.humans[i].py, self.humans[i].radius])
+
+        self.global_time += self.time_step # max episode length=time_limit/time_step
+        self.step_counter = self.step_counter+1
+
+        info={'info':episode_info}
+
+        # Add or remove at most self.human_num_range humans
+        # if self.human_num_range == 0 -> human_num is fixed at all times
+        if self.human_num_range > 0 and self.global_time % 5 == 0:
+            # remove humans
+            if np.random.rand() < 0.5:
+                # if no human is visible, anyone can be removed
+                if len(self.observed_human_ids) == 0:
+                    max_remove_num = self.human_num - 1
+                else:
+                    max_remove_num = (self.human_num - 1) - max(self.observed_human_ids)
+                remove_num = np.random.randint(low=0, high=min(self.human_num_range, max_remove_num) + 1)
+                for _ in range(remove_num):
+                    self.humans.pop()
+                self.human_num = self.human_num - remove_num
+                self.last_human_states = self.last_human_states[:self.human_num]
+            # add humans
+            else:
+                add_num = np.random.randint(low=0, high=self.human_num_range + 1)
+                if add_num > 0:
+                    # set human ids
+                    true_add_num = 0
+                    for i in range(self.human_num, self.human_num + add_num):
+                        if i == self.config.sim.human_num + self.human_num_range:
+                            break
+                        self.generate_random_human_position(human_num=1)
+                        self.humans[i].id = i
+                        true_add_num = true_add_num + 1
+                    self.human_num = self.human_num + true_add_num
+                    if true_add_num > 0:
+                        self.last_human_states = np.concatenate((self.last_human_states, np.array([[15, 15, 0, 0, 0.3]]*true_add_num)), axis=0)
+
+
+        # compute the observation
+        ob = self.generate_ob(reset=False)
+
+
+        # Update all humans' goals randomly midway through episode
+        if self.random_goal_changing:
+            if self.global_time % 5 == 0:
+                self.update_human_goals_randomly()
+
+        # Update a specific human's goal once its reached its original goal
+        if self.end_goal_changing and not self.record:
+            for i, human in enumerate(self.humans):
+                if norm((human.gx - human.px, human.gy - human.py)) < human.radius:
+                    self.humans[i] = self.generate_circle_crossing_human()
+                    self.humans[i].id = i
+
+        return ob, reward, done, info
 
     def talk2Env(self, data):
         """
@@ -78,9 +265,50 @@ class CrowdSimCar(CrowdSimPred):
         # since gst pred model needs ID tracking, don't sort all humans
         # inherit from crowd_sim_lstm, not crowd_sim_pred to avoid computation of true pred!
         # sort=False because we will sort in wrapper in vec_pretext_normalize.py later
-        parent_ob = super(CrowdSimPred, self).generate_ob(reset=reset, sort=False)
+        ob = {}
 
-        # add additional keys, removed unused keys
+        # nodes
+        _, num_visibles, self.human_visibility = self.get_num_human_in_fov()
+
+        ob["robot_node"] = self.robot.relative_state()
+        # print("robot_node: ", ob["robot_node"])
+
+        self.update_last_human_states(self.human_visibility, reset=reset)
+
+        # edges
+        ob['temporal_edges'] = np.array([self.robot.vx, self.robot.vy])
+
+        # ([relative px, relative py, disp_x, disp_y], human id)
+        all_spatial_edges = np.ones((self.max_human_num, 2)) * np.inf
+
+        for i in range(self.human_num):
+            if self.human_visibility[i]:
+                # vector pointing from human i to robot
+                relative_pos = np.array(
+                    [self.last_human_states[i, 0] - self.robot.px, self.last_human_states[i, 1] - self.robot.py])
+                all_spatial_edges[self.humans[i].id, :2] = relative_pos
+
+        ob['visible_masks'] = np.zeros(self.max_human_num, dtype=np.bool)
+        # sort all humans by distance (invisible humans will be in the end automatically)
+        if sort:
+            ob['spatial_edges'] = np.array(sorted(all_spatial_edges, key=lambda x: np.linalg.norm(x)))
+            # after sorting, the visible humans must be in the front
+            if num_visibles > 0:
+                ob['visible_masks'][:num_visibles] = True
+        else:
+            ob['spatial_edges'] = all_spatial_edges
+            ob['visible_masks'][:self.human_num] = self.human_visibility
+        ob['spatial_edges'][np.isinf(ob['spatial_edges'])] = 15
+        ob['detected_human_num'] = num_visibles
+        # if no human is detected, assume there is one dummy human at (15, 15) to make the pack_padded_sequence work
+        if ob['detected_human_num'] == 0:
+            ob['detected_human_num'] = 1
+
+        # update self.observed_human_ids
+        self.observed_human_ids = np.where(self.human_visibility)[0]
+
+        parent_ob = ob
+
         ob = {}
 
         ob['visible_masks'] = parent_ob['visible_masks']
@@ -92,12 +320,120 @@ class CrowdSimCar(CrowdSimPred):
         ob['detected_human_num'] = parent_ob['detected_human_num']
 
         return ob
+    
+    def compute_distance_from_human(self):
+        distance_from_human = np.zeros(self.human_num)
 
+        for i, human in enumerate(self.humans):
+            distance_from_human[i] = np.linalg.norm(np.array([human.px, human.py]) - np.array([self.robot.px, self.robot.py]))
+
+        return distance_from_human
+    
+    def compute_collision_reward(self, distance_from_human):
+        distance_limit = 1
+
+        collision_happed = np.min(distance_from_human) < distance_limit
+
+        if collision_happed:
+            return -40.0
+        else:
+            return 0.0
+    
+    def compute_near_collision_reward(self, distance_from_human):
+        min_distance_to_keep_from_human = 1.5
+        distance_to_closest_human = np.min(distance_from_human)
+        # TODO get the corect velocity
+        vehicle_current_speed = self.robot.vx
+        # TODO same here
+        vehicle_min_acceleration = 0.5
+
+        dr = np.max(min_distance_to_keep_from_human, (vehicle_current_speed**2)/(2*vehicle_min_acceleration))
+
+        return np.exp((distance_to_closest_human-dr)/dr)
+
+    def compute_speed_reward(current_speed, pref_speed):
+        if 0.0 < current_speed <= pref_speed:
+            # l = 1/pref_speed # old formula
+            # return l * (pref_speed - current_speed)
+            return 1-(pref_speed - current_speed)/pref_speed
+        elif current_speed > pref_speed:
+            return np.exp(-current_speed + pref_speed)
+        elif current_speed <= 0.0:
+            return current_speed
+    
+    def compute_angular_reward(self, angle):
+        # TODO Careful with hard coded values
+        angle_penalty = 20
+        return np.exp(-angle/angle_penalty)
+
+    def compute_proximity_reward(self, distance_from_goal):
+        # TODO Careful with hard coded values
+        penalty_distance = 10
+        return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
 
     def calc_reward(self, action, danger_zone='future'):
-        # inherit from crowd_sim_lstm, not crowd_sim_pred to prevent social reward calculation
-        # since we don't know the GST predictions yet
-        reward, done, episode_info = super(CrowdSimPred, self).calc_reward(action, danger_zone=danger_zone)
+        
+        distance_from_human = self.compute_distance_from_human()
+
+        collision_reward = self.compute_collision_reward(distance_from_human)
+        near_collision_reward = self.compute_near_collision_reward(distance_from_human)
+        speed_reward = self.compute_speed_reward(self.robot.vx, self.robot.v_pref)
+        angular_reward = self.compute_angular_reward(self.angle)
+
+        # TODO Je pense que ca ne vas pas fonctionner ici
+        distance_from_goal = self.robot.get_current_goal() - self.robot.get_position()
+        proximity_reward = self.compute_proximity_reward(distance_from_goal)
+
+        reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
+
+        # TODO si le robot est asser procehe du but on lui donnea et on passe au goal suivant ?
+
+        if self.global_time >= self.time_limit - 1:
+            reward = 0
+            done = True
+            episode_info = Timeout()
+        elif collision:
+            reward = self.collision_penalty
+            done = True
+            episode_info = Collision()
+        elif reaching_goal:
+            reward = self.success_reward
+            done = True
+            episode_info = ReachGoal()
+        elif danger_cond:
+            # only penalize agent for getting too close if it's visible
+            # adjust the reward based on FPS
+            # print(dmin)
+            reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
+            done = False
+            episode_info = Danger(min_danger_dist)
+        else:
+            # potential reward
+            if self.robot.kinematics == 'holonomic':
+                pot_factor = 2
+            else:
+                pot_factor = 3
+            potential_cur = np.linalg.norm(
+                np.array([self.robot.px, self.robot.py]) - np.array(self.robot.get_goal_position()))
+            reward = pot_factor * (-abs(potential_cur) - self.potential)
+            self.potential = -abs(potential_cur)
+
+            done = False
+            episode_info = Nothing()
+
+        # if the robot is near collision/arrival, it should be able to turn a large angle
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
+            # add a rotational penalty
+            r_spin = -4.5 * action.r ** 2
+
+            # add a penalty for going backwards
+            if action.v < 0:
+                r_back = -2 * abs(action.v)
+            else:
+                r_back = 0.
+
+            reward = reward + r_spin + r_back
+
         return reward, done, episode_info
 
 

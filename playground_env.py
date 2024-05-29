@@ -43,10 +43,12 @@ def main():
 
     env = make_env("CrowdSimCar-v0", 42, 1, "_", True,config=env_config)
     env = DummyVecEnv([env])
-    print(env.observation_space)
-    print(env.action_space.low)
-    print(env.action_space.high)
+    print(f"{env.observation_space=}")
+    # print(env.action_space.low)
+    # print(env.action_space.high)
     
+    env.reset()
+    env.envs[0].generate_ob(True)
 
 if __name__ == '__main__':
     main()
