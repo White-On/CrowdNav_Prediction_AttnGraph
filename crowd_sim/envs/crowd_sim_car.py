@@ -4,7 +4,7 @@ import numpy as np
 from crowd_sim.envs.crowd_sim_pred import CrowdSimPred
 from crowd_sim.envs.utils.info import *
 from numpy.linalg import norm
-from crowd_sim.envs.utils.action import ActionRot
+from crowd_sim.envs.utils.action import ActionRot, ActionXY
 
 
 class CrowdSimCar(CrowdSimPred):
@@ -36,7 +36,7 @@ class CrowdSimCar(CrowdSimPred):
         observation_space = {}
         forseen_index = 1
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
-        vehicle_speed_boundries = [-1, 4]
+        vehicle_speed_boundries = [-0.5, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
         objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
         all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
@@ -151,9 +151,15 @@ class CrowdSimCar(CrowdSimPred):
             # get orca action
             action = self.robot.act(human_states.tolist())
         else:
-            action = self.robot.policy.clip_action(action, self.robot.v_pref)
+            # clip the action to be within the action space
+            # action = self.robot.policy.clip_action(action, self.robot.v_pref)
+            action = np.clip(action, self.action_space.low, self.action_space.high)
+            if self.robot.kinematics == 'holonomic':
+                action = ActionXY(action[0], action[1])
+            else:
+                action = ActionRot(action[1], action[0])
 
-        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
+        if self.robot.kinematics == 'unicycle':
             self.desiredVelocity[0] = np.clip(self.desiredVelocity[0] + action.v, -self.robot.v_pref, self.robot.v_pref)
             action = ActionRot(self.desiredVelocity[0], action.r)
 
@@ -163,8 +169,10 @@ class CrowdSimCar(CrowdSimPred):
                 self.episodeRecoder.unsmoothed_actions.append(list(action))
 
             action = self.smooth_action(action)
-
-
+        
+        elif self.robot.kinematics == 'bicycle':
+            pass
+        
 
         human_actions = self.get_human_actions()
 
@@ -462,6 +470,16 @@ class CrowdSimCar(CrowdSimPred):
         ax.add_artist(goal)
         artists.append(goal)
 
+        # add list of goals
+        for idx, goal in enumerate(self.robot.get_agent_goal_collection()):
+            goal_point=mlines.Line2D([goal[0]], [goal[1]], color='g', marker='p', linestyle='None', markersize=15, label='Goal')
+            ax.add_artist(goal_point)
+            artists.append(goal_point)
+            # add a number to each goal
+            offset_txt = 0.1
+            plt.text(goal[0]-offset_txt, goal[1]-offset_txt, idx, color='black', fontsize=12)
+
+
         # add robot
         robotX,robotY=self.robot.get_position()
 
@@ -556,8 +574,9 @@ class CrowdSimCar(CrowdSimPred):
                     ax.add_artist(circle)
                     artists.append(circle)
 
-        # plt.pause(0.1)
-        plt.pause(5)
+        plt.pause(0.1)
+        # plt.pause(1)
+        # plt.pause(5)
         for item in artists:
             item.remove() # there should be a better way to do this. For example,
             # initially use add_artist and draw_artist later on

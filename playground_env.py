@@ -42,10 +42,13 @@ def main():
         from crowd_nav.configs.config import Config
     env_config = config = Config()
 
+    arena_size = env_config.sim.arena_size
+    arena_viz_factor = 2
+
     # set up visualization
-    fig, ax = plt.subplots(figsize=(7, 7))
-    ax.set_xlim(-6.5, 6.5) # 6
-    ax.set_ylim(-6.5, 6.5)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_xlim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
+    ax.set_ylim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
     # ax.set_xlabel('x(m)', fontsize=16)
@@ -65,8 +68,28 @@ def main():
     # print(env.envs[0].generate_ob(True))
     reward_value, done, status = env.envs[0].calc_reward()
     print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
-	
-    env.envs[0].render()
+    # print(env.envs[0].action_space.sample())
+    print(f"Robot's Policy is: {env.envs[0].robot.policy.__class__.__name__}")
+
+    # for i in range(10):
+    #     action = np.random.uniform(env.envs[0].action_space.low+10, env.envs[0].action_space.high+20)
+    #     cliped_action = np.clip(action, env.envs[0].action_space.low, env.envs[0].action_space.high)
+    #     print(f"{action = }, {cliped_action = }")
+
+    # num_steps = 0
+    num_steps = 100
+
+    for i in range(num_steps):
+        env.envs[0].render()
+        obs, reward, done, info = env.step(env.envs[0].action_space.sample())
+        # print(f"{obs = }")
+        print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
+        if done:
+            break
+
+    # env.envs[0].render()
+    # env.envs[0].step(env.envs[0].action_space.sample())
+    # env.envs[0].render()
 
     plt.show()
 

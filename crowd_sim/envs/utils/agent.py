@@ -37,10 +37,12 @@ class Agent(object):
 
         # TODO collect collection of goals from config file
         nb_goals = 5
-        self.collection_goal_coordinates = np.random.uniform(-10, 10, (nb_goals, 2))
+        arena_size = 6
+        self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
         self.goal_cusor = 0
         self.relative_speed = 1.0
         self.acceleration_limits = [0.5, 2.0]
+        self.robot_size = 0.3
 
 
     def print_info(self):
@@ -174,6 +176,12 @@ class Agent(object):
             px = self.px + action.vx * delta_t
             py = self.py + action.vy * delta_t
         # unicycle or bicycle
+        elif self.kinematics == 'bicycle':
+            self.theta += (action.v / self.robot_size) * np.tan(action.r) * delta_t
+            self.px += action.v * np.cos(self.theta) * delta_t
+            self.py += action.v * np.sin(self.theta) * delta_t   
+            px = self.px
+            py = self.py
         else:
             # naive dynamics
             # theta = self.theta + action.r * delta_t # if action.r is w
@@ -200,15 +208,16 @@ class Agent(object):
         Perform an action and update the state
         """
         self.check_validity(action)
-        pos = self.compute_position(action, self.time_step)
-        self.px, self.py = pos
         if self.kinematics == 'holonomic':
             self.vx = action.vx
             self.vy = action.vy
-        else:
+        if self.kinematics == 'unicycle':
             self.theta = (self.theta + action.r) % (2 * np.pi)
             self.vx = action.v * np.cos(self.theta)
             self.vy = action.v * np.sin(self.theta)
+
+        pos = self.compute_position(action, self.time_step)
+        self.px, self.py = pos
 
     def one_step_lookahead(self, pos, action):
         px, py = pos
