@@ -68,7 +68,7 @@ class CrowdSimCar(CrowdSimPred):
 
         self.observation_space = gym.spaces.Dict(observation_space)
 
-        action_space_boundries = np.vstack((vehicle_angle_boundries, vehicle_speed_boundries))
+        action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))
         self.action_space = gym.spaces.Box(action_space_boundries[:,0], action_space_boundries[:,1], dtype=np.float32)
 
     def reset(self, phase='train', test_case=None):
@@ -153,11 +153,13 @@ class CrowdSimCar(CrowdSimPred):
         else:
             # clip the action to be within the action space
             # action = self.robot.policy.clip_action(action, self.robot.v_pref)
+            # print("action: ", action)
             action = np.clip(action, self.action_space.low, self.action_space.high)
+            # print("action clipped: ", action)
             if self.robot.kinematics == 'holonomic':
                 action = ActionXY(action[0], action[1])
             else:
-                action = ActionRot(action[1], action[0])
+                action = ActionRot(action[0], action[1])
 
         if self.robot.kinematics == 'unicycle':
             self.desiredVelocity[0] = np.clip(self.desiredVelocity[0] + action.v, -self.robot.v_pref, self.robot.v_pref)

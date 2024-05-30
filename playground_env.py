@@ -79,9 +79,20 @@ def main():
     # num_steps = 0
     num_steps = 100
 
+    # given_actions = [env.envs[0].action_space.sample() for _ in range(num_steps)]
+
+    speed_action_space = [env.envs[0].action_space.low[0], env.envs[0].action_space.high[0]]
+    delta_action_space = [env.envs[0].action_space.low[1], env.envs[0].action_space.high[1]]
+    print(f"{speed_action_space = }, {delta_action_space = }")
+    v = np.linspace(speed_action_space[0], speed_action_space[1], num_steps)
+    delta = np.linspace(delta_action_space[0], delta_action_space[1], num_steps)
+
+    given_actions = [[v[i], delta[i]] for i in range(num_steps)]
+
     for i in range(num_steps):
         env.envs[0].render()
-        obs, reward, done, info = env.step(env.envs[0].action_space.sample())
+        
+        obs, reward, done, info = env.step(given_actions[i])
         # print(f"{obs = }")
         print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
         if done:
