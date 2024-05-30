@@ -36,9 +36,11 @@ class Agent(object):
         self.policy.time_step = config.env.time_step
 
         # TODO collect collection of goals from config file
-        self.collection_goal_coordinates = np.random.uniform(-10, 10, (5, 2))
+        nb_goals = 5
+        self.collection_goal_coordinates = np.random.uniform(-10, 10, (nb_goals, 2))
         self.goal_cusor = 0
         self.relative_speed = 1.0
+        self.acceleration_limits = [0.5, 2.0]
 
 
     def print_info(self):
@@ -127,7 +129,10 @@ class Agent(object):
 
     def get_current_goal(self):
         # TODO add to reach more than one goal in the future
-        return self.collection_goal_coordinates[self.goal_cusor]
+        if self.goal_cusor >= len(self.collection_goal_coordinates):
+            return None
+        else:
+            return self.collection_goal_coordinates[self.goal_cusor]
 
     def next_goal(self):   
         self.goal_cusor += 1

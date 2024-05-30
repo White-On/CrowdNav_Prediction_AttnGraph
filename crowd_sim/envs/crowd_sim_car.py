@@ -343,15 +343,15 @@ class CrowdSimCar(CrowdSimPred):
         min_distance_to_keep_from_human = 1.5
         distance_to_closest_human = np.min(distance_from_human)
         # TODO get the corect velocity
-        vehicle_current_speed = self.robot.vx
+        vehicle_current_speed = self.robot.relative_speed
         # TODO same here
-        vehicle_min_acceleration = 0.5
+        vehicle_min_acceleration = self.robot.acceleration_limits[0]
 
-        dr = np.max(min_distance_to_keep_from_human, (vehicle_current_speed**2)/(2*vehicle_min_acceleration))
+        dr = np.max([min_distance_to_keep_from_human, (vehicle_current_speed**2.0)/(2.0*vehicle_min_acceleration)])
 
         return np.exp((distance_to_closest_human-dr)/dr)
 
-    def compute_speed_reward(current_speed, pref_speed):
+    def compute_speed_reward(self,current_speed, pref_speed):
         if 0.0 < current_speed <= pref_speed:
             # l = 1/pref_speed # old formula
             # return l * (pref_speed - current_speed)
@@ -371,7 +371,7 @@ class CrowdSimCar(CrowdSimPred):
         penalty_distance = 10
         return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
 
-    def calc_reward(self, action, danger_zone='future'):
+    def calc_reward(self, action=None, danger_zone='future'):
         
         distance_from_human = self.compute_distance_from_human()
 
@@ -381,58 +381,44 @@ class CrowdSimCar(CrowdSimPred):
         angular_reward = self.compute_angular_reward(self.angle)
 
         # TODO Je pense que ca ne vas pas fonctionner ici
-        distance_from_goal = self.robot.get_current_goal() - self.robot.get_position()
+        current_goal_coordinates = self.robot.get_current_goal()
+        distance_from_goal = np.linalg.norm(np.array([self.robot.px, self.robot.py]) - np.array(current_goal_coordinates))
         proximity_reward = self.compute_proximity_reward(distance_from_goal)
 
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
 
-        # TODO si le robot est asser procehe du but on lui donnea et on passe au goal suivant ?
+        episode_timeout = self.global_time >= self.time_limit - 1
+        collision_happened = collision_reward < 0
+        # TODO check if we are at the last goal and close enough to it
+        goal_distance_threshold = 0.5
 
-        if self.global_time >= self.time_limit - 1:
-            reward = 0
-            done = True
-            episode_info = Timeout()
-        elif collision:
-            reward = self.collision_penalty
-            done = True
-            episode_info = Collision()
-        elif reaching_goal:
-            reward = self.success_reward
-            done = True
-            episode_info = ReachGoal()
-        elif danger_cond:
-            # only penalize agent for getting too close if it's visible
-            # adjust the reward based on FPS
-            # print(dmin)
-            reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
-            done = False
-            episode_info = Danger(min_danger_dist)
-        else:
-            # potential reward
-            if self.robot.kinematics == 'holonomic':
-                pot_factor = 2
+        goal_reached = distance_from_goal < goal_distance_threshold
+
+        if goal_reached:
+            self.robot.next_goal()
+
+            no_more_goal = self.robot.get_current_goal() is None
+            if no_more_goal:
+                goal_reached = True
             else:
-                pot_factor = 3
-            potential_cur = np.linalg.norm(
-                np.array([self.robot.px, self.robot.py]) - np.array(self.robot.get_goal_position()))
-            reward = pot_factor * (-abs(potential_cur) - self.potential)
-            self.potential = -abs(potential_cur)
+                goal_reached = False
 
+        # TODO si le robot est asser proche du but on lui donnera et on passe au goal suivant ?
+
+        conditions = {
+            episode_timeout: Timeout,
+            collision_happened: Collision,
+            goal_reached: ReachGoal
+        }
+
+        for condition, result in conditions.items():
+            if condition:
+                done = True
+                episode_info = result()
+                break
+        else:
             done = False
             episode_info = Nothing()
-
-        # if the robot is near collision/arrival, it should be able to turn a large angle
-        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
-            # add a rotational penalty
-            r_spin = -4.5 * action.r ** 2
-
-            # add a penalty for going backwards
-            if action.v < 0:
-                r_back = -2 * abs(action.v)
-            else:
-                r_back = 0.
-
-            reward = reward + r_spin + r_back
 
         return reward, done, episode_info
 
@@ -570,7 +556,8 @@ class CrowdSimCar(CrowdSimPred):
                     ax.add_artist(circle)
                     artists.append(circle)
 
-        plt.pause(0.1)
+        # plt.pause(0.1)
+        plt.pause(5)
         for item in artists:
             item.remove() # there should be a better way to do this. For example,
             # initially use add_artist and draw_artist later on

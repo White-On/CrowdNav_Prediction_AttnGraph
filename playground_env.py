@@ -6,6 +6,7 @@ from crowd_sim.envs import *
 
 
 from rich import print
+import matplotlib.pyplot as plt
 import logging
 import numpy as np
 
@@ -41,14 +42,33 @@ def main():
         from crowd_nav.configs.config import Config
     env_config = config = Config()
 
-    env = make_env("CrowdSimCar-v0", 42, 1, "_", True,config=env_config)
+    # set up visualization
+    fig, ax = plt.subplots(figsize=(7, 7))
+    ax.set_xlim(-6.5, 6.5) # 6
+    ax.set_ylim(-6.5, 6.5)
+    ax.axes.xaxis.set_visible(False)
+    ax.axes.yaxis.set_visible(False)
+    # ax.set_xlabel('x(m)', fontsize=16)
+    # ax.set_ylabel('y(m)', fontsize=16)
+    plt.ion()
+    plt.show()
+
+    seed = np.random.randint(0, 1000)
+
+    env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv([env])
     print(f"{env.observation_space=}")
     # print(env.action_space.low)
     # print(env.action_space.high)
     
     env.reset()
-    env.envs[0].generate_ob(True)
+    # print(env.envs[0].generate_ob(True))
+    reward_value, done, status = env.envs[0].calc_reward()
+    print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
+	
+    env.envs[0].render()
+
+    plt.show()
 
 if __name__ == '__main__':
     main()
