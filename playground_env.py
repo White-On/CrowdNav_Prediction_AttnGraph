@@ -65,6 +65,7 @@ def main():
     # print(env.action_space.high)
     
     env.reset()
+    env.envs[0].robot.path = env.envs[0].robot.create_path()
     # print(env.envs[0].generate_ob(True))
     # reward_value, done, status = env.envs[0].calc_reward()
     # print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')

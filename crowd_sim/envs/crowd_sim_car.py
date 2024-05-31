@@ -380,7 +380,7 @@ class CrowdSimCar(CrowdSimPred):
 
     def compute_proximity_reward(self, distance_from_goal):
         # TODO Careful with hard coded values
-        penalty_distance = 10
+        penalty_distance = 2
         return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
 
     def calc_reward(self, action=None, danger_zone='future'):
@@ -389,13 +389,16 @@ class CrowdSimCar(CrowdSimPred):
 
         collision_reward = self.compute_collision_reward(distance_from_human)
         near_collision_reward = self.compute_near_collision_reward(distance_from_human)
-        speed_reward = self.compute_speed_reward(self.robot.vx, self.robot.v_pref)
-        angular_reward = self.compute_angular_reward(self.angle)
+        speed_reward = self.compute_speed_reward(self.robot.relative_speed, self.robot.v_pref)
+        angle_from_goal = self.robot.get_angle_from_goal()
+        # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
+        angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 
         # TODO Je pense que ca ne vas pas fonctionner ici
         current_goal_coordinates = self.robot.get_current_goal()
         distance_from_goal = np.linalg.norm(np.array([self.robot.px, self.robot.py]) - np.array(current_goal_coordinates))
-        proximity_reward = self.compute_proximity_reward(distance_from_goal)
+        distance_from_path = self.robot.get_distance_from_path()
+        proximity_reward = self.compute_proximity_reward(distance_from_path)
 
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
 
@@ -406,7 +409,8 @@ class CrowdSimCar(CrowdSimPred):
         # TODO check if we are at the last goal and close enough to it
         goal_distance_threshold = 0.5
 
-        goal_reached = distance_from_goal < goal_distance_threshold
+        goal_reached = distance_from_goal <= goal_distance_threshold
+        # print(f'🎯 distance_from_goal: {distance_from_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
 
         if goal_reached:
             self.robot.next_goal()
@@ -472,18 +476,29 @@ class CrowdSimCar(CrowdSimPred):
         artists=[]
 
         # add goal
-        goal=mlines.Line2D([self.robot.gx], [self.robot.gy], color=goal_color, marker='*', linestyle='None', markersize=15, label='Goal')
-        ax.add_artist(goal)
-        artists.append(goal)
+        # goal=mlines.Line2D([self.robot.gx], [self.robot.gy], color=goal_color, marker='*', linestyle='None', markersize=15, label='Goal')
+        # ax.add_artist(goal)
+        # artists.append(goal)
 
         # add list of goals
         for idx, goal in enumerate(self.robot.get_agent_goal_collection()):
-            goal_point=mlines.Line2D([goal[0]], [goal[1]], color='g', marker='p', linestyle='None', markersize=15, label='Goal')
+            color = 'g'
+            if idx == self.robot.goal_cusor:
+                color = 'r'
+            goal_point=mlines.Line2D([goal[0]], [goal[1]], color=color, marker='p', linestyle='None', markersize=15, label='Goal')
             ax.add_artist(goal_point)
             artists.append(goal_point)
             # add a number to each goal
             offset_txt = 0.1
             plt.text(goal[0]-offset_txt, goal[1]-offset_txt, idx, color='black', fontsize=12)
+        
+        # add line for the path between goals
+        if len(self.robot.path) > 0:
+            for i in range(len(self.robot.path)):
+                # print(f"Path: {self.robot.path[i]}")
+                path_line = mlines.Line2D([self.robot.path[i][0], self.robot.path[i][2]], [self.robot.path[i][1], self.robot.path[i][3]], color='g', linestyle='--')
+                ax.add_artist(path_line)
+                artists.append(path_line)
 
 
         # add robot
