@@ -66,8 +66,8 @@ def main():
     
     env.reset()
     # print(env.envs[0].generate_ob(True))
-    reward_value, done, status = env.envs[0].calc_reward()
-    print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
+    # reward_value, done, status = env.envs[0].calc_reward()
+    # print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
     # print(env.envs[0].action_space.sample())
     print(f"Robot's Policy is: {env.envs[0].robot.policy.__class__.__name__}")
 
@@ -83,9 +83,12 @@ def main():
 
     speed_action_space = [env.envs[0].action_space.low[0], env.envs[0].action_space.high[0]]
     delta_action_space = [env.envs[0].action_space.low[1], env.envs[0].action_space.high[1]]
-    print(f"{speed_action_space = }, {delta_action_space = }")
-    v = np.linspace(speed_action_space[0], speed_action_space[1], num_steps)
-    delta = np.linspace(delta_action_space[0], delta_action_space[1], num_steps)
+    # print(f"{speed_action_space = }, {delta_action_space = }")
+    # v = np.linspace(speed_action_space[0], speed_action_space[1], num_steps)
+    # delta = np.linspace(delta_action_space[0], delta_action_space[1], num_steps)
+    
+    v = np.linspace(1, 2, num_steps)
+    delta = np.linspace(-np.pi/6, np.pi/6, num_steps)
 
     given_actions = [[v[i], delta[i]] for i in range(num_steps)]
 
@@ -94,7 +97,7 @@ def main():
         
         obs, reward, done, info = env.step(given_actions[i])
         # print(f"{obs = }")
-        print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
+        # print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
         if done:
             break
 

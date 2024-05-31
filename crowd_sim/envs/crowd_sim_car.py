@@ -6,6 +6,8 @@ from crowd_sim.envs.utils.info import *
 from numpy.linalg import norm
 from crowd_sim.envs.utils.action import ActionRot, ActionXY
 
+from rich import print
+
 
 class CrowdSimCar(CrowdSimPred):
     '''
@@ -396,6 +398,8 @@ class CrowdSimCar(CrowdSimPred):
         proximity_reward = self.compute_proximity_reward(distance_from_goal)
 
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
+
+        print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
 
         episode_timeout = self.global_time >= self.time_limit - 1
         collision_happened = collision_reward < 0
