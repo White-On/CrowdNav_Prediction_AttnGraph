@@ -402,12 +402,13 @@ class CrowdSimCar(CrowdSimPred):
 
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
 
-        print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
+        # print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
 
         episode_timeout = self.global_time >= self.time_limit - 1
         collision_happened = collision_reward < 0
         # TODO check if we are at the last goal and close enough to it
         goal_distance_threshold = 0.5
+        reward_all_goals_reached = 50
 
         goal_reached = distance_from_goal <= goal_distance_threshold
         # print(f'🎯 distance_from_goal: {distance_from_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
@@ -418,6 +419,7 @@ class CrowdSimCar(CrowdSimPred):
             no_more_goal = self.robot.get_current_goal() is None
             if no_more_goal:
                 goal_reached = True
+                reward += reward_all_goals_reached
             else:
                 goal_reached = False
 

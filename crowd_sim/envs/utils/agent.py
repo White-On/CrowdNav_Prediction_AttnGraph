@@ -38,7 +38,8 @@ class Agent(object):
         # TODO collect collection of goals from config file
         nb_goals = 5
         arena_size = 6
-        self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
+        # self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
+        self.collection_goal_coordinates = np.vstack((np.arange(nb_goals), np.zeros(nb_goals))).reshape(2, nb_goals).T
         self.path = None
         self.goal_cusor = 0
         self.relative_speed = 1.0
@@ -142,7 +143,10 @@ class Agent(object):
     
     def relative_state(self):
         robot_pos = self.get_position()
-        relative_goal = np.array(self.get_current_goal()) - np.array(robot_pos)
+        current_goal = self.get_current_goal()
+        if current_goal is None:
+            return [0, 0, 0, 0]
+        relative_goal = np.array(current_goal) - np.array(robot_pos)
         return [self.relative_speed ,self.theta ,relative_goal[0], relative_goal[1]]
     
     def get_agent_goal_collection(self):

@@ -66,6 +66,8 @@ def main():
     
     env.reset()
     env.envs[0].robot.path = env.envs[0].robot.create_path()
+    env.envs[0].robot.set_position([0, 0])
+    env.envs[0].robot.theta = 0
     # print(env.envs[0].generate_ob(True))
     # reward_value, done, status = env.envs[0].calc_reward()
     # print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
@@ -88,8 +90,9 @@ def main():
     # v = np.linspace(speed_action_space[0], speed_action_space[1], num_steps)
     # delta = np.linspace(delta_action_space[0], delta_action_space[1], num_steps)
     
-    v = np.linspace(1, 2, num_steps)
-    delta = np.linspace(-np.pi/6, np.pi/6, num_steps)
+    v = np.linspace(0.5, 1, num_steps)
+    # delta = np.linspace(-np.pi/6, np.pi/6, num_steps)
+    delta = np.zeros(num_steps)
 
     given_actions = [[v[i], delta[i]] for i in range(num_steps)]
 
@@ -98,7 +101,7 @@ def main():
         
         obs, reward, done, info = env.step(given_actions[i])
         # print(f"{obs = }")
-        # print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
+        print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
         if done:
             break
 
