@@ -1,8 +1,6 @@
 import logging
 import gym
 import numpy as np
-import rvo2
-import random
 import copy
 
 from numpy.linalg import norm
@@ -216,8 +214,8 @@ class CrowdSim(gym.Env):
             collide = False
 
             for i, agent in enumerate([self.robot] + self.humans):
-                # keep human at least 3 meters away from robot
-                if self.robot.kinematics == 'unicycle' and i == 0:
+                # keep human at least 3 meters away from robot at the beginning
+                if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle' and i == 0:
                     min_dist = self.circle_radius / 2 # Todo: if circle_radius <= 4, it will get stuck here
                 else:
                     min_dist = human.radius + agent.radius + self.discomfort_dist
@@ -296,6 +294,17 @@ class CrowdSim(gym.Env):
                 if np.linalg.norm([px - gx, py - gy]) >= 6:  # 1 was 6
                     break
             self.robot.set(px, py, gx, gy, 0, 0, np.random.uniform(0, 2*np.pi)) # randomize init orientation
+        
+        elif self.robot.kinematics == 'bicycle':
+            angle = np.random.uniform(0, np.pi * 2)
+            px = self.circle_radius * np.cos(angle)
+            py = self.circle_radius * np.sin(angle)
+            while True:
+                gx, gy = np.random.uniform(-self.circle_radius, self.circle_radius, 2)
+                init_distance_to_goal = np.linalg.norm([px - gx, py - gy])
+                if init_distance_to_goal >= 6:
+                    break
+            self.robot.set(px, py, gx, gy, 0, 0, np.random.uniform(0, 2*np.pi)) # TODO: init orientation towards goal
 
         # randomize starting position and goal position
         else:
@@ -485,6 +494,7 @@ class CrowdSim(gym.Env):
 
     # calculate the angle between the direction vector of state1 and the vector from state1 to state2
     def calc_offset_angle(self, state1, state2):
+        # real_theta is the angle of the robot's velocity vector
         if self.robot.kinematics == 'holonomic':
             real_theta = np.arctan2(state1.vy, state1.vx)
         else:
@@ -642,7 +652,7 @@ class CrowdSim(gym.Env):
 
 
         # if the robot is near collision/arrival, it should be able to turn a large angle
-        if self.robot.kinematics == 'unicycle':
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
             # add a rotational penalty
             # if action.r is w, factor = -0.02 if w in [-1.5, 1.5], factor = -0.045 if w in [-1, 1];
             # if action.r is delta theta, factor = -2 if r in [-0.15, 0.15], factor = -4.5 if r in [-0.1, 0.1]
@@ -796,7 +806,7 @@ class CrowdSim(gym.Env):
         radius = self.robot.radius
         arrowStartEnd=[]
 
-        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' else np.arctan2(self.robot.vy, self.robot.vx)
+        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle' else np.arctan2(self.robot.vy, self.robot.vx)
 
         arrowStartEnd.append(((robotX, robotY), (robotX + radius * np.cos(robot_theta), robotY + radius * np.sin(robot_theta))))
 

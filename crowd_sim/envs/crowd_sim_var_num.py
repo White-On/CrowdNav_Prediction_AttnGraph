@@ -90,6 +90,17 @@ class CrowdSimVarNum(CrowdSim):
                 # print('human_num:', self.human_num)
                 # self.human_num = 4
 
+            elif self.robot.kinematics == 'bicycle':
+                angle = np.random.uniform(0, np.pi * 2)
+                px = self.arena_size * np.cos(angle)
+                py = self.arena_size * np.sin(angle)
+                while True:
+                    gx, gy = np.random.uniform(-self.arena_size, self.arena_size, 2)
+                    init_distance_to_goal = np.linalg.norm([px - gx, py - gy])
+                    if init_distance_to_goal >= 4:
+                        break
+                self.robot.set(px, py, gx, gy, 0, 0, np.random.uniform(0, 2*np.pi)) # TODO: init orientation towards goal
+                self.human_num = np.random.randint(1, self.config.sim.human_num + self.human_num_range + 1)
 
             # for sim exp
             else:
@@ -130,7 +141,7 @@ class CrowdSimVarNum(CrowdSim):
 
             for i, agent in enumerate([self.robot] + self.humans):
                 # keep human at least 3 meters away from robot
-                if self.robot.kinematics == 'unicycle' and i == 0:
+                if (self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle') and i == 0:
                     min_dist = self.circle_radius / 2  # Todo: if circle_radius <= 4, it will get stuck here
                 else:
                     min_dist = human.radius + agent.radius + self.discomfort_dist
@@ -376,9 +387,10 @@ class CrowdSimVarNum(CrowdSim):
         else:
             action = self.robot.policy.clip_action(action, self.robot.v_pref)
 
-        if self.robot.kinematics == 'unicycle':
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
             self.desiredVelocity[0] = np.clip(self.desiredVelocity[0] + action.v, -self.robot.v_pref, self.robot.v_pref)
             action = ActionRot(self.desiredVelocity[0], action.r)
+
 
         human_actions = self.get_human_actions()
 
@@ -485,7 +497,7 @@ class CrowdSimVarNum(CrowdSim):
 
 
         # check if reaching the goal
-        if self.robot.kinematics == 'unicycle':
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
             goal_radius = 0.6
         else:
             goal_radius = self.robot.radius
@@ -546,7 +558,7 @@ class CrowdSimVarNum(CrowdSim):
             episode_info = Nothing()
 
         # if the robot is near collision/arrival, it should be able to turn a large angle
-        if self.robot.kinematics == 'unicycle':
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
             # add a rotational penalty
             r_spin = -4.5 * action.r ** 2
 
@@ -611,7 +623,7 @@ class CrowdSimVarNum(CrowdSim):
         radius = self.robot.radius
         arrowStartEnd=[]
 
-        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' else np.arctan2(self.robot.vy, self.robot.vx)
+        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle' else np.arctan2(self.robot.vy, self.robot.vx)
 
         arrowStartEnd.append(((robotX, robotY), (robotX + radius * np.cos(robot_theta), robotY + radius * np.sin(robot_theta))))
 

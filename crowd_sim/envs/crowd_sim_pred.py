@@ -61,6 +61,7 @@ class CrowdSimPred(CrowdSimVarNum):
     # reset = True: reset calls this function; reset = False: step calls this function
     def generate_ob(self, reset, sort=True):
         """Generate observation for reset and step functions"""
+        # an observation is a dictionary with keys: robot_node, temporal_edges, spatial_edges, detected_human_num
         ob = {}
 
         # nodes
@@ -117,7 +118,7 @@ class CrowdSimPred(CrowdSimVarNum):
         else:
             action = self.robot.policy.clip_action(action, self.robot.v_pref)
 
-        if self.robot.kinematics == 'unicycle':
+        if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle':
             self.desiredVelocity[0] = np.clip(self.desiredVelocity[0] + action.v, -self.robot.v_pref, self.robot.v_pref)
             action = ActionRot(self.desiredVelocity[0], action.r)
 
@@ -283,7 +284,7 @@ class CrowdSimPred(CrowdSimVarNum):
         radius = self.robot.radius
         arrowStartEnd=[]
 
-        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' else np.arctan2(self.robot.vy, self.robot.vx)
+        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle' else np.arctan2(self.robot.vy, self.robot.vx)
 
         arrowStartEnd.append(((robotX, robotY), (robotX + radius * np.cos(robot_theta), robotY + radius * np.sin(robot_theta))))
 

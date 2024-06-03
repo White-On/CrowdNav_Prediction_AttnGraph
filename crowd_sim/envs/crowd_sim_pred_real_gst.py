@@ -152,7 +152,7 @@ class CrowdSimPredRealGST(CrowdSimPred):
         radius = self.robot.radius
         arrowStartEnd=[]
 
-        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' else np.arctan2(self.robot.vy, self.robot.vx)
+        robot_theta = self.robot.theta if self.robot.kinematics == 'unicycle' or self.robot.kinematics == 'bicycle' else np.arctan2(self.robot.vy, self.robot.vx)
 
         arrowStartEnd.append(((robotX, robotY), (robotX + radius * np.cos(robot_theta), robotY + radius * np.sin(robot_theta))))
 
