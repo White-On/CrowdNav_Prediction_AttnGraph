@@ -61,9 +61,6 @@ def main():
 
     env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv([env])
-    # print(f"{env.observation_space=}")
-    # print(env.action_space.low)
-    # print(env.action_space.high)
     
     env.reset()
     env.envs[0].robot.path = env.envs[0].robot.create_path()
@@ -82,12 +79,11 @@ def main():
     #     cliped_action = np.clip(action, env.envs[0].action_space.low, env.envs[0].action_space.high)
     #     print(f"{action = }, {cliped_action = }")
 
-    # num_steps = 0
     num_steps = 200
     num_episodes = 20
     log_file = 'env_experiment.log'
-    save = False
-    log_results_episodes = {'episode':[], 'status':[], 'reward':[]}
+    save = True
+    log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
     # given_actions = [env.envs[0].action_space.sample() for _ in range(num_steps)]
 
@@ -112,8 +108,6 @@ def main():
             angle_from_goal = env.envs[0].robot.get_angle_from_goal()
             angle_to_take = np.clip(angle_from_goal, delta_action_space[0], delta_action_space[1])
 
-            # print(f'{angle_to_take = }')
-
             distance_from_humans = env.envs[0].compute_distance_from_human()
             closest_human_distance = np.min(distance_from_humans)
 
@@ -124,13 +118,14 @@ def main():
 
             
             # print(f"{obs = }")
-            # print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
+            print(f'Step: {step+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
             if done:
                 print(f'Episode {episode+1} finished at step {step+1}, status: {info[0].get("info")}')
                 if save:
                     log_results_episodes['episode'].append(episode)
                     log_results_episodes['status'].append(info[0].get('info').__class__.__name__)
                     log_results_episodes['reward'].append(reward[0])
+                    log_results_episodes['steps'].append(step+1)
                 break
                 
     
