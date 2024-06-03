@@ -390,7 +390,7 @@ class CrowdSimCar(CrowdSimPred):
         collision_reward = self.compute_collision_reward(distance_from_human)
         near_collision_reward = self.compute_near_collision_reward(distance_from_human)
         speed_reward = self.compute_speed_reward(self.robot.relative_speed, self.robot.v_pref)
-        angle_from_goal = self.robot.get_angle_from_goal()
+        angle_from_goal = np.abs(self.robot.get_angle_from_goal())
         # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
         angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 

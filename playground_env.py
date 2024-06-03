@@ -8,6 +8,7 @@ from crowd_sim.envs import *
 from rich import print
 import matplotlib.pyplot as plt
 import logging
+import pandas as pd
 import numpy as np
 
 
@@ -46,7 +47,7 @@ def main():
     arena_viz_factor = 2
 
     # set up visualization
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(5, 5))
     ax.set_xlim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.set_ylim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.axes.xaxis.set_visible(False)
@@ -60,19 +61,21 @@ def main():
 
     env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv([env])
-    print(f"{env.observation_space=}")
+    # print(f"{env.observation_space=}")
     # print(env.action_space.low)
     # print(env.action_space.high)
     
     env.reset()
     env.envs[0].robot.path = env.envs[0].robot.create_path()
-    env.envs[0].robot.set_position([0, 0])
-    env.envs[0].robot.theta = 0
+
+    # env.envs[0].robot.set_position([0, 0])
+    # env.envs[0].robot.theta = 0
+
     # print(env.envs[0].generate_ob(True))
     # reward_value, done, status = env.envs[0].calc_reward()
     # print(f'reward_value: {reward_value:.2f}, done: {done}, status: {status}')
     # print(env.envs[0].action_space.sample())
-    print(f"Robot's Policy is: {env.envs[0].robot.policy.__class__.__name__}")
+    # print(f"Robot's Policy is: {env.envs[0].robot.policy.__class__.__name__}")
 
     # for i in range(10):
     #     action = np.random.uniform(env.envs[0].action_space.low+10, env.envs[0].action_space.high+20)
@@ -80,7 +83,11 @@ def main():
     #     print(f"{action = }, {cliped_action = }")
 
     # num_steps = 0
-    num_steps = 100
+    num_steps = 200
+    num_episodes = 20
+    log_file = 'env_experiment.log'
+    save = False
+    log_results_episodes = {'episode':[], 'status':[], 'reward':[]}
 
     # given_actions = [env.envs[0].action_space.sample() for _ in range(num_steps)]
 
@@ -91,25 +98,46 @@ def main():
     # delta = np.linspace(delta_action_space[0], delta_action_space[1], num_steps)
     
     v = np.linspace(0.5, 1, num_steps)
-    # delta = np.linspace(-np.pi/6, np.pi/6, num_steps)
-    delta = np.zeros(num_steps)
+    delta = np.linspace(-np.pi/6, np.pi/6, num_steps)
+    # delta = np.zeros(num_steps)
 
     given_actions = [[v[i], delta[i]] for i in range(num_steps)]
 
-    for i in range(num_steps):
-        env.envs[0].render()
-        
-        obs, reward, done, info = env.step(given_actions[i])
-        # print(f"{obs = }")
-        print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done}, status: {info[0].get("info")}')
-        if done:
-            break
+    for episode in range(num_episodes):
+        env.reset()
+        env.envs[0].robot.full_reset()
+        for step in range(num_steps):
+            env.envs[0].render()
 
-    # env.envs[0].render()
-    # env.envs[0].step(env.envs[0].action_space.sample())
-    # env.envs[0].render()
+            angle_from_goal = env.envs[0].robot.get_angle_from_goal()
+            angle_to_take = np.clip(angle_from_goal, delta_action_space[0], delta_action_space[1])
+
+            # print(f'{angle_to_take = }')
+
+            distance_from_humans = env.envs[0].compute_distance_from_human()
+            closest_human_distance = np.min(distance_from_humans)
+
+            speed = np.clip(closest_human_distance*0.2, 0, 1)
+            # print(f'Step: {step+1}, {speed = }', f'{angle_to_take = }')
+            
+            obs, reward, done, info = env.step([speed, angle_to_take])
+
+            
+            # print(f"{obs = }")
+            # print(f'Step: {i+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
+            if done:
+                print(f'Episode {episode+1} finished at step {step+1}, status: {info[0].get("info")}')
+                if save:
+                    log_results_episodes['episode'].append(episode)
+                    log_results_episodes['status'].append(info[0].get('info').__class__.__name__)
+                    log_results_episodes['reward'].append(reward[0])
+                break
+                
+    
 
     plt.show()
+    if save:
+        pd.DataFrame(log_results_episodes).to_csv(log_file, index=False)
 
 if __name__ == '__main__':
     main()

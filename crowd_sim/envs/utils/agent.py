@@ -38,8 +38,8 @@ class Agent(object):
         # TODO collect collection of goals from config file
         nb_goals = 5
         arena_size = 6
-        # self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
-        self.collection_goal_coordinates = np.vstack((np.arange(nb_goals), np.zeros(nb_goals))).reshape(2, nb_goals).T
+        self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
+        # self.collection_goal_coordinates = np.vstack((np.arange(nb_goals), np.zeros(nb_goals))).reshape(2, nb_goals).T
         self.path = None
         self.goal_cusor = 0
         self.relative_speed = 1.0
@@ -219,7 +219,7 @@ class Agent(object):
         angle_error = desired_angle - orientation
 
         # Normalize the angle error to the range [-pi, pi]
-        angle_error = np.abs((angle_error + np.pi) % (2 * np.pi) - np.pi)
+        angle_error = (angle_error + np.pi) % (2 * np.pi) - np.pi
 
         return angle_error
 
@@ -285,4 +285,11 @@ class Agent(object):
 
     def reached_destination(self):
         return norm(np.array(self.get_position()) - np.array(self.get_goal_position())) < self.radius
+
+    def full_reset(self):
+        nb_goals = 5
+        arena_size = 6
+        self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
+        self.goal_cusor = 0
+        self.path = self.create_path()
 
