@@ -86,8 +86,15 @@ class CrowdSimCar(CrowdSimPred):
         all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
         observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
         
-        observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 1), dtype=np.float32)
-        observation_space['adjency_matrix'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 1), dtype=np.float32)
+        # predictions only include mu_x, mu_y (or px, py)
+        self.spatial_edge_dim = int(2*(self.predict_steps+1))
+
+        observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf,
+                                            shape=(self.config.sim.human_num + 1, self.spatial_edge_dim), dtype=np.float32)
+        
+        observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
+                                            shape=(self.config.sim.human_num,),
+                                            dtype=np.bool)
         
         self.observation_space = gym.spaces.Dict(observation_space)
 
@@ -300,61 +307,117 @@ class CrowdSimCar(CrowdSimPred):
         # since gst pred model needs ID tracking, don't sort all humans
         # inherit from crowd_sim_lstm, not crowd_sim_pred to avoid computation of true pred!
         # sort=False because we will sort in wrapper in vec_pretext_normalize.py later
-        ob = {}
+        # ob = {}
+
+        # # nodes
+        # _, num_visibles, self.human_visibility = self.get_num_human_in_fov()
+
+        # ob["robot_node"] = self.robot.relative_state()
+        # # print("robot_node: ", ob["robot_node"])
+
+        # self.update_last_human_states(self.human_visibility, reset=reset)
+
+        # # edges
+        # # ob['temporal_edges'] = np.array([self.robot.vx, self.robot.vy])
+
+        # # ([relative px, relative py, disp_x, disp_y], human id)
+        # all_spatial_edges = np.ones((self.max_human_num, 2)) * np.inf
+
+        # for i in range(self.human_num):
+        #     if self.human_visibility[i]:
+        #         # vector pointing from human i to robot
+        #         relative_pos = np.array(
+        #             [self.last_human_states[i, 0] - self.robot.px, self.last_human_states[i, 1] - self.robot.py])
+        #         all_spatial_edges[self.humans[i].id, :2] = relative_pos
+
+        # ob['visible_masks'] = np.zeros(self.max_human_num, dtype=np.bool)
+        # # sort all humans by distance (invisible humans will be in the end automatically)
+        # if sort:
+        #     ob['spatial_edges'] = np.array(sorted(all_spatial_edges, key=lambda x: np.linalg.norm(x)))
+        #     # after sorting, the visible humans must be in the front
+        #     if num_visibles > 0:
+        #         ob['visible_masks'][:num_visibles] = True
+        # else:
+        #     ob['spatial_edges'] = all_spatial_edges
+        #     ob['visible_masks'][:self.human_num] = self.human_visibility
+        # ob['spatial_edges'][np.isinf(ob['spatial_edges'])] = 15
+
+        # # ob['detected_human_num'] = num_visibles
+        # # # if no human is detected, assume there is one dummy human at (15, 15) to make the pack_padded_sequence work
+        # # if ob['detected_human_num'] == 0:
+        # #     ob['detected_human_num'] = 1
+
+        # # update self.observed_human_ids
+        # self.observed_human_ids = np.where(self.human_visibility)[0]
+
+        # parent_ob = ob
+
+        # ob = {}
+
+        # ob['visible_masks'] = parent_ob['visible_masks']
+        # ob['robot_node'] = parent_ob['robot_node']
+        # # ob['temporal_edges'] = parent_ob['temporal_edges']
+
+        # ob['spatial_edges'] = np.tile(parent_ob['spatial_edges'], self.predict_steps+1)
+
+        # # ob['detected_human_num'] = parent_ob['detected_human_num']
+
+        observation = {}
 
         # nodes
         _, num_visibles, self.human_visibility = self.get_num_human_in_fov()
 
-        ob["robot_node"] = self.robot.relative_state()
-        # print("robot_node: ", ob["robot_node"])
+        # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
+        robot_state = [self.robot.relative_speed, self.robot.theta]
+        robot_state.extend(self.robot.get_current_goal())
+        observation['robot_node'] = np.array(robot_state)
+        
+        # graph features: future position of every human + robot 
+        # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
+        # robot is always the first one
 
-        self.update_last_human_states(self.human_visibility, reset=reset)
+        # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
 
-        # edges
-        ob['temporal_edges'] = np.array([self.robot.vx, self.robot.vy])
+        # for i in range(self.human_num):
+        #     if self.human_visibility[i]:
+        #         human_future_traj = np.array(self.humans[i].get_future_traj(self.predict_steps))
+        #         observation['graph_features'] = np.vstack((robot_future_traj, human_future_traj))
+        #     else:
+        #         # the visibility mask will make sure that the invisible humans are not considered
+        #         human_future_traj = np.zeros((self.predict_steps+1, 2))
+        #     observation['graph_features'] = np.vstack((robot_future_traj, human_future_traj))
+        
+        # # transform the graph features into relative coordinates
+        # robot_position = np.array([self.robot.px, self.robot.py])
+        # observation['graph_features'] = observation['graph_features'] - robot_position
 
         # ([relative px, relative py, disp_x, disp_y], human id)
-        all_spatial_edges = np.ones((self.max_human_num, 2)) * np.inf
+        all_graph_features = np.ones((self.max_human_num, 2)) * np.inf
 
         for i in range(self.human_num):
             if self.human_visibility[i]:
                 # vector pointing from human i to robot
                 relative_pos = np.array(
                     [self.last_human_states[i, 0] - self.robot.px, self.last_human_states[i, 1] - self.robot.py])
-                all_spatial_edges[self.humans[i].id, :2] = relative_pos
+                all_graph_features[self.humans[i].id, :2] = relative_pos
 
-        ob['visible_masks'] = np.zeros(self.max_human_num, dtype=np.bool)
-        # sort all humans by distance (invisible humans will be in the end automatically)
-        if sort:
-            ob['spatial_edges'] = np.array(sorted(all_spatial_edges, key=lambda x: np.linalg.norm(x)))
-            # after sorting, the visible humans must be in the front
-            if num_visibles > 0:
-                ob['visible_masks'][:num_visibles] = True
-        else:
-            ob['spatial_edges'] = all_spatial_edges
-            ob['visible_masks'][:self.human_num] = self.human_visibility
-        ob['spatial_edges'][np.isinf(ob['spatial_edges'])] = 15
-        ob['detected_human_num'] = num_visibles
-        # if no human is detected, assume there is one dummy human at (15, 15) to make the pack_padded_sequence work
-        if ob['detected_human_num'] == 0:
-            ob['detected_human_num'] = 1
+        observation['visible_masks'] = np.zeros(self.human_num, dtype=np.bool)
 
-        # update self.observed_human_ids
-        self.observed_human_ids = np.where(self.human_visibility)[0]
+        observation['graph_features'] = all_graph_features
+        observation['visible_masks'] = np.array(self.human_visibility)
+        observation['graph_features'][np.isinf(observation['graph_features'])] = 15
 
-        parent_ob = ob
+        observation['graph_features'] = np.tile(observation['graph_features'], self.predict_steps+1)
 
-        ob = {}
+        # graph features: future position of every human + robot 
+        # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
+        # robot is always the first one
 
-        ob['visible_masks'] = parent_ob['visible_masks']
-        ob['robot_node'] = parent_ob['robot_node']
-        ob['temporal_edges'] = parent_ob['temporal_edges']
+        # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
+        robot_future_traj = np.random.rand(self.predict_steps+1, 2).flatten()
+        observation['graph_features'] = np.vstack((robot_future_traj, observation['graph_features']))
 
-        ob['spatial_edges'] = np.tile(parent_ob['spatial_edges'], self.predict_steps+1)
-
-        ob['detected_human_num'] = parent_ob['detected_human_num']
-
-        return {'robot_node':np.random.randint(0, 10,size=(4))}
+        return observation
     
     def compute_distance_from_human(self):
         distance_from_human = np.zeros(self.human_num)

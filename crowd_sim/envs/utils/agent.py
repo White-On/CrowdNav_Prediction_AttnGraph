@@ -297,4 +297,14 @@ class Agent(object):
         self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
         self.goal_cusor = 0
         self.path = self.create_path()
+    
+    def get_future_traj(self, horizon):
+        future_traj = []
+        pos = self.get_position()
+        for i in range(horizon):
+            action = self.policy.act(None)
+            pos = self.one_step_lookahead(pos, action)
+            future_traj.append(pos)
+        return future_traj
+
 

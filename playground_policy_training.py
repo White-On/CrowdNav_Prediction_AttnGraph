@@ -75,6 +75,8 @@ def main():
     env = DummyVecEnv(
         [make_env("CrowdSimCar-v0", seed, i, "_", True,config=env_config, ax=ax, envNum=nb_enviroments) for i in range(nb_enviroments)]
     )
+
+    # logging.info(f"{env.envs[0].observation_space = }")
     env.reset()
 
     num_steps = 200
