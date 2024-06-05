@@ -73,6 +73,9 @@ class Agent(object):
             self.radius = radius
         if v_pref is not None:
             self.v_pref = v_pref
+        
+        self.path = self.create_path()
+
 
     # self.px, self.py, self.vx, self.vy, self.radius, self.gx, self.gy, self.v_pref, self.theta
     def set_list(self, px, py, vx, vy, radius, gx, gy, v_pref, theta):
@@ -85,6 +88,8 @@ class Agent(object):
         self.theta = theta
         self.radius = radius
         self.v_pref = v_pref
+
+        self.path = self.create_path()
 
     def get_observable_state(self):
         return ObservableState(self.px, self.py, self.vx, self.vy, self.radius)

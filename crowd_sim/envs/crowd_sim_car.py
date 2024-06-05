@@ -28,7 +28,7 @@ class CrowdSimCar(CrowdSimPred):
         self.gst_out_traj = None
 
 
-    def set_robot(self, robot):
+    def old_set_robot(self, robot):
         """set observation space and action space"""
         self.robot = robot
 
@@ -73,6 +73,28 @@ class CrowdSimCar(CrowdSimPred):
         action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))
         self.action_space = gym.spaces.Box(action_space_boundries[:,0], action_space_boundries[:,1], dtype=np.float32)
 
+    def set_robot(self, robot):
+        """set observation space and action space"""
+        self.robot = robot
+
+        observation_space = {}
+        forseen_index = 1
+        # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
+        vehicle_speed_boundries = [-0.5, 2]
+        vehicle_angle_boundries = [-np.pi/6, np.pi/6]
+        objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
+        all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
+        observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
+        
+        observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 1), dtype=np.float32)
+        observation_space['adjency_matrix'] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1, 1), dtype=np.float32)
+        
+        self.observation_space = gym.spaces.Dict(observation_space)
+
+        action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))
+        self.action_space = gym.spaces.Box(action_space_boundries[:,0], action_space_boundries[:,1], dtype=np.float32)
+
+
     def reset(self, phase='train', test_case=None):
         """
         Reset the environment
@@ -93,6 +115,7 @@ class CrowdSimCar(CrowdSimPred):
         self.step_counter = 0
         self.id_counter = 0
 
+        self.robot.full_reset()
 
         self.humans = []
         # self.human_num = self.config.sim.human_num
@@ -331,7 +354,7 @@ class CrowdSimCar(CrowdSimPred):
 
         ob['detected_human_num'] = parent_ob['detected_human_num']
 
-        return ob
+        return {'robot_node':np.random.randint(0, 10,size=(4))}
     
     def compute_distance_from_human(self):
         distance_from_human = np.zeros(self.human_num)

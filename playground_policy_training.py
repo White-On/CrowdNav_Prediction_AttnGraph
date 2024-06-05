@@ -1,4 +1,3 @@
-import gym.wrappers
 from rl.networks.envs import make_env
 # from rl.networks.envs import make_vec_envs
 from rl.networks.dummy_vec_env import DummyVecEnv
@@ -73,10 +72,10 @@ def main():
     nb_enviroments = 5
 
     # env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
-    env = gym.vector.SyncVectorEnv(
+    env = DummyVecEnv(
         [make_env("CrowdSimCar-v0", seed, i, "_", True,config=env_config, ax=ax, envNum=nb_enviroments) for i in range(nb_enviroments)]
     )
-    
+    env.reset()
 
     num_steps = 200
     num_episodes = 1
@@ -90,32 +89,40 @@ def main():
 
     for episode in range(num_episodes):
         env.reset()
-        env.envs[0].robot.full_reset()
         for step in range(num_steps):
             env.envs[0].render()
 
-            angle_from_goal = env.envs[0].robot.get_angle_from_goal()
-            angle_to_take = np.clip(angle_from_goal, delta_action_space[0], delta_action_space[1])
+            angle_from_goal = [env.envs[i].robot.get_angle_from_goal() for i in range(nb_enviroments)]
+            angle_to_take = [np.clip(angle, delta_action_space[0], delta_action_space[1]) for angle in angle_from_goal]
 
-            distance_from_humans = env.envs[0].compute_distance_from_human()
-            closest_human_distance = np.min(distance_from_humans)
+            distance_from_humans = [env.envs[i].compute_distance_from_human() for i in range(nb_enviroments)]
+            closest_human_distance = np.min(distance_from_humans, axis=1)
 
             speed = np.clip(closest_human_distance*0.2, 0, 1)
-            obs, reward, done, info = env.step([speed, angle_to_take])
+            action = np.vstack([speed, angle_to_take]).T
+            # logging.info(f"{action = }")
+            obs, reward, done, info = env.step(action)
             
-            # obs, reward, done, info = env.step(action)
+            idx_done = np.where(done)[0]
+            if len(idx_done) > 0:
+                logging.info(f"Episode {episode+1} finished at step {step+1}, status: {info[idx_done[0]].get('info')}")
+                if save:
+                    log_results_episodes['episode'].append(episode)
+                    log_results_episodes['status'].append(info[idx_done[0]].get('info').__class__.__name__)
+                    log_results_episodes['reward'].append(reward[idx_done[0]])
+                    log_results_episodes['steps'].append(step+1)
 
             
             # print(f"{obs = }")
-            logging.info(f'Step: {step+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
-            if done:
-                logging.info(f'Episode {episode+1} finished at step {step+1}, status: {info[0].get("info")}')
-                if save:
-                    log_results_episodes['episode'].append(episode)
-                    log_results_episodes['status'].append(info[0].get('info').__class__.__name__)
-                    log_results_episodes['reward'].append(reward[0])
-                    log_results_episodes['steps'].append(step+1)
-                break
+            # logging.info(f'Step: {step+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
+            # if done:
+            #     logging.info(f'Episode {episode+1} finished at step {step+1}, status: {info[0].get("info")}')
+            #     if save:
+            #         log_results_episodes['episode'].append(episode)
+            #         log_results_episodes['status'].append(info[0].get('info').__class__.__name__)
+            #         log_results_episodes['reward'].append(reward[0])
+            #         log_results_episodes['steps'].append(step+1)
+            #     break
             
 
     plt.show()
