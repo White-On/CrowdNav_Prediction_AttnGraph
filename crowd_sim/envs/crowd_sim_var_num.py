@@ -100,7 +100,8 @@ class CrowdSimVarNum(CrowdSim):
                     if init_distance_to_goal >= 4:
                         break
                 self.robot.set(px, py, gx, gy, 0, 0, np.random.uniform(0, 2*np.pi)) # TODO: init orientation towards goal
-                self.human_num = np.random.randint(1, self.config.sim.human_num + self.human_num_range + 1)
+                # self.human_num = np.random.randint(1, self.config.sim.human_num + self.human_num_range + 1)
+                self.human_num = self.config.sim.human_num
 
             # for sim exp
             else:
