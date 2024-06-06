@@ -375,47 +375,59 @@ class CrowdSimCar(CrowdSimPred):
         # graph features: future position of every human + robot 
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         # robot is always the first one
+        
+        observation['graph_features'] = np.zeros((self.human_num + 1, (self.predict_steps+1), 2))
+        # print(f"graph_features: {observation['graph_features'].shape}")
 
+        for i in range(self.human_num):
+            human = self.humans[i]
+            if self.human_visibility[i]:
+                direction_vector = np.array([human.px -self.last_human_states[i, 0], human.py - self.last_human_states[i, 1]])
+                # with the vector we calculate the n future positions
+                human_position = np.array([human.px, human.py])
+                direction_vector = np.tile(direction_vector, self.predict_steps+1).reshape(-1, 2) * np.arange(0, self.predict_steps+1).reshape(-1, 1)
+                human_future_traj = human_position + direction_vector
+            else:
+                # the visibility mask will make sure that the invisible humans are not considered
+                human_future_traj = np.zeros((self.predict_steps+1, 2))
+            observation['graph_features'][i] = human_future_traj
+        
+        # transform the graph features into relative coordinates
+        robot_position = np.array([self.robot.px, self.robot.py])
+        observation['graph_features'] = observation['graph_features'] - robot_position
+
+        # add robot future traj
         # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
+        robot_future_traj = np.random.rand(self.predict_steps+1, 2)
+        observation['graph_features'][-1] = robot_future_traj
+
+        observation['graph_features'] = observation['graph_features'].reshape(self.human_num + 1, -1)
+
+        self.update_last_human_states(self.human_visibility, reset=reset)
+
+        # ([relative px, relative py, disp_x, disp_y], human id)
+        # all_graph_features = np.ones((self.max_human_num, 2)) * np.inf
 
         # for i in range(self.human_num):
         #     if self.human_visibility[i]:
-        #         human_future_traj = np.array(self.humans[i].get_future_traj(self.predict_steps))
-        #         observation['graph_features'] = np.vstack((robot_future_traj, human_future_traj))
-        #     else:
-        #         # the visibility mask will make sure that the invisible humans are not considered
-        #         human_future_traj = np.zeros((self.predict_steps+1, 2))
-        #     observation['graph_features'] = np.vstack((robot_future_traj, human_future_traj))
-        
-        # # transform the graph features into relative coordinates
-        # robot_position = np.array([self.robot.px, self.robot.py])
-        # observation['graph_features'] = observation['graph_features'] - robot_position
+        #         # vector pointing from human i to robot
+        #         relative_pos = np.array(
+        #             [self.last_human_states[i, 0] - self.robot.px, self.last_human_states[i, 1] - self.robot.py])
+        #         all_graph_features[self.humans[i].id, :2] = relative_pos
 
-        # ([relative px, relative py, disp_x, disp_y], human id)
-        all_graph_features = np.ones((self.max_human_num, 2)) * np.inf
 
-        for i in range(self.human_num):
-            if self.human_visibility[i]:
-                # vector pointing from human i to robot
-                relative_pos = np.array(
-                    [self.last_human_states[i, 0] - self.robot.px, self.last_human_states[i, 1] - self.robot.py])
-                all_graph_features[self.humans[i].id, :2] = relative_pos
+        # observation['graph_features'] = all_graph_features
+        # observation['graph_features'][np.isinf(observation['graph_features'])] = 15
 
-        observation['visible_masks'] = np.zeros(self.human_num, dtype=np.bool)
-
-        observation['graph_features'] = all_graph_features
-        observation['visible_masks'] = np.array(self.human_visibility)
-        observation['graph_features'][np.isinf(observation['graph_features'])] = 15
-
-        observation['graph_features'] = np.tile(observation['graph_features'], self.predict_steps+1)
+        # observation['graph_features'] = np.tile(observation['graph_features'], self.predict_steps+1)
 
         # graph features: future position of every human + robot 
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         # robot is always the first one
 
         # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
-        robot_future_traj = np.random.rand(self.predict_steps+1, 2).flatten()
-        observation['graph_features'] = np.vstack((robot_future_traj, observation['graph_features']))
+
+        observation['visible_masks'] = np.array(self.human_visibility)
 
         return observation
     
@@ -672,16 +684,17 @@ class CrowdSimCar(CrowdSimPred):
                 plt.text(self.humans[i].px , self.humans[i].py , i, color='black', fontsize=12)
 
         # plot predicted human positions
-        for i in range(len(self.humans)):
+        if self.gst_out_traj is not None:
+            for i in range(len(self.humans)):
             # add future predicted positions of each human
-            if self.gst_out_traj is not None:
-                for j in range(self.predict_steps):
-                    circle = plt.Circle(self.gst_out_traj[i, (2 * j):(2 * j + 2)] + np.array([robotX, robotY]),
-                                        self.config.humans.radius, fill=False, color='tab:orange', linewidth=1.5)
-                    # circle = plt.Circle(np.array([robotX, robotY]),
-                    #                     self.humans[i].radius, fill=False)
-                    ax.add_artist(circle)
-                    artists.append(circle)
+                if self.human_visibility[i]:
+                    for j in range(self.predict_steps):
+                        circle = plt.Circle(self.gst_out_traj[i, (2 * j):(2 * j + 2)] + np.array([robotX, robotY]),
+                                            self.config.humans.radius, fill=False, color='tab:orange', linewidth=1.5, alpha=0.5)
+                        # circle = plt.Circle(np.array([robotX, robotY]),
+                        #                     self.humans[i].radius, fill=False)
+                        ax.add_artist(circle)
+                        artists.append(circle)
 
         plt.pause(0.1)
         # plt.pause(1)

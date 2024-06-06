@@ -60,7 +60,8 @@ def main():
     arena_viz_factor = 2
 
     # set up visualization
-    fig, ax = plt.subplots(figsize=(5, 5))
+    # fig, ax = plt.subplots(figsize=(5, 5))
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.set_ylim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.axes.xaxis.set_visible(False)
@@ -69,7 +70,7 @@ def main():
     plt.show()
 
     seed = np.random.randint(0, 1000)
-    nb_enviroments = 5
+    nb_enviroments = 2
 
     # env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv(
@@ -92,6 +93,9 @@ def main():
     for episode in range(num_episodes):
         env.reset()
         for step in range(num_steps):
+
+            
+            
             env.envs[0].render()
 
             angle_from_goal = [env.envs[i].robot.get_angle_from_goal() for i in range(nb_enviroments)]
@@ -114,8 +118,14 @@ def main():
                     log_results_episodes['reward'].append(reward[idx_done[0]])
                     log_results_episodes['steps'].append(step+1)
 
+            out_pred = obs['graph_features'][0, :, 2:]
+            # print(f"{out_pred.shape = }")
+            # send manager action to all processes
+            ack = env.envs[0].talk2Env(out_pred)
+            # print(f"{ack = }")
+            # assert all(ack)
             
-            # print(f"{obs = }")
+            # print(f"{obs['graph_features'] = }")
             # logging.info(f'Step: {step+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
             # if done:
             #     logging.info(f'Episode {episode+1} finished at step {step+1}, status: {info[0].get("info")}')
