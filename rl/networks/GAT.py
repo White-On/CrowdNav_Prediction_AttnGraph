@@ -1,134 +1,142 @@
-import torch
-from torch import nn
 import torch.nn.functional as F
+import torch.nn as nn
+import torch
+import logging
 
+import math
 
-################################
-###         GAT LAYER        ###
-################################
-
-class GraphAttentionLayer(nn.Module):
+class GAT(torch.nn.Module):
     """
-    Graph Attention Layer (GAT) as described in the paper `"Graph Attention Networks" <https://arxiv.org/pdf/1710.10903.pdf>`.
-
-        This operation can be mathematically described as:
-
-            e_ij = a(W h_i, W h_j)
-            α_ij = softmax_j(e_ij) = exp(e_ij) / Σ_k(exp(e_ik))     
-            h_i' = σ(Σ_j(α_ij W h_j))
-            
-            where h_i and h_j are the feature vectors of nodes i and j respectively, W is a learnable weight matrix,
-            a is an attention mechanism that computes the attention coefficients e_ij, and σ is an activation function.
-
+    I've added 3 GAT implementations - some are conceptually easier to understand some are more efficient.
+    The most interesting and hardest one to understand is implementation #3.
+    Imp1 and imp2 differ in subtle details but are basically the same thing.
+    Tip on how to approach this:
+        understand implementation 2 first, check out the differences it has with imp1, and finally tackle imp #3.
     """
-    def __init__(self, in_features: int, out_features: int, n_heads: int, concat: bool = False, dropout: float = 0.4, leaky_relu_slope: float = 0.2):
-        super(GraphAttentionLayer, self).__init__()
 
-        self.n_heads = n_heads # Number of attention heads
-        self.concat = concat # wether to concatenate the final attention heads
-        self.dropout = dropout # Dropout rate
+    def __init__(self, num_of_layers, num_heads_per_layer, num_features_per_layer, add_skip_connection=False, bias=False,
+                 dropout=0.6, log_attention_weights=False):
+        super().__init__()
+        logging.info(f'GAT with num_of_layers: {num_of_layers}, num_heads_per_layer: {num_heads_per_layer}, num_features_per_layer: {num_features_per_layer}, add_skip_connection: {add_skip_connection}, bias: {bias}, dropout: {dropout}, log_attention_weights: {log_attention_weights}')
+        assert num_of_layers == len(num_heads_per_layer) == len(num_features_per_layer) - 1, f'Enter valid arch params.'
 
-        if concat: # concatenating the attention heads
-            self.out_features = out_features # Number of output features per node
-            assert out_features % n_heads == 0 # Ensure that out_features is a multiple of n_heads
-            self.n_hidden = out_features // n_heads
-        else: # averaging output over the attention heads (Used in the main paper)
-            self.n_hidden = out_features
+        num_heads_per_layer = [1] + num_heads_per_layer  # trick - so that I can nicely create GAT layers below
 
-        #  A shared linear transformation, parametrized by a weight matrix W is applied to every node
-        #  Initialize the weight matrix W 
-        self.W = nn.Parameter(torch.empty(size=(in_features, self.n_hidden * n_heads)))
+        gat_layers = []  # collect GAT layers
+        for i in range(num_of_layers):
+            layer = GATLayer(
+                input_size=num_features_per_layer[i],  # consequence of concatenation
+                embed_size=num_features_per_layer[i+1],
+                num_head=num_heads_per_layer[i+1],
+                # concat=True if i < num_of_layers - 1 else False,  # last GAT layer does mean avg, the others do concat
+                # activation=nn.ELU() if i < num_of_layers - 1 else None,  # last layer just outputs raw scores
+                dropout_prob=dropout,
+                add_skip_connection=add_skip_connection,
+                bias=bias,
+                log_attention_weights=log_attention_weights
+            )
+            gat_layers.append(layer)
 
-        # Initialize the attention weights a
-        self.a = nn.Parameter(torch.empty(size=(n_heads, 2 * self.n_hidden, 1)))
+        self.gat_net = nn.Sequential(
+            *gat_layers,
+        )
 
-        self.leakyrelu = nn.LeakyReLU(leaky_relu_slope) # LeakyReLU activation function
-        self.softmax = nn.Softmax(dim=1) # softmax activation function to the attention coefficients
+    # data is just a (in_nodes_features, topology) tuple, I had to do it like this because of the nn.Sequential:
+    # https://discuss.pytorch.org/t/forward-takes-2-positional-arguments-but-3-were-given-for-nn-sqeuential-with-linear-layers/65698
+    def forward(self, data, attn_mask):
+        res = self.gat_net([data, attn_mask])
+        return res
 
-        self.reset_parameters() # Reset the parameters
+
+class GATLayer(torch.nn.Module):
+    """
+    Base class for all implementations as there is much code that would otherwise be copy/pasted.
+    """
+    def __init__(self, input_size, embed_size, num_head, concat=False, activation=None,
+                 dropout_prob=0.6, add_skip_connection=False, bias=False, log_attention_weights=False):
+        logging.info(f'GAT Layer: input_size: {input_size}, embed_size: {embed_size}, num_head: {num_head}, concat: {concat}, activation: {activation}, dropout_prob: {dropout_prob}, add_skip_connection: {add_skip_connection}, bias: {bias}, log_attention_weights: {log_attention_weights}')
+        super().__init__()
+
+        self.num_attention_heads = num_head
+        self.attention_head_size = int(embed_size / num_head)
+        self.all_head_size = self.num_attention_heads * self.attention_head_size
+
+        self.input_size = input_size
+        # Linear layer to embed input
+        self.embedding_layer = nn.Sequential(nn.Linear(self.input_size, 128), nn.ReLU(),
+                                             nn.Linear(128, embed_size), nn.ReLU()
+                                            )
+
+        self.query = nn.Linear(embed_size, self.all_head_size)
+        self.key = nn.Linear(embed_size, self.all_head_size)
+        self.value = nn.Linear(embed_size, self.all_head_size)
+
+        self.dense = nn.Linear(embed_size, embed_size)
 
 
-    def reset_parameters(self):
-        """
-        Reinitialize learnable parameters.
-        """
-        nn.init.xavier_normal_(self.W)
-        nn.init.xavier_normal_(self.a)
-    
 
-    def _get_attention_scores(self, h_transformed: torch.Tensor):
-        """calculates the attention scores e_ij for all pairs of nodes (i, j) in the graph
-        in vectorized parallel form. for each pair of source and target nodes (i, j),
-        the attention score e_ij is computed as follows:
+        # self.leakyReLU = nn.LeakyReLU(0.2)  # using 0.2 as in the paper, no need to expose every setting
+        # self.softmax = nn.Softmax(dim=-1)  # -1 stands for apply the log-softmax along the last dimension
+        # self.activation = activation
+        # # Probably not the nicest design but I use the same module in 3 locations, before/after features projection
+        # # and for attention coefficients. Functionality-wise it's the same as using independent modules.
+        # self.dropout = nn.Dropout(p=dropout_prob)
 
-            e_ij = LeakyReLU(a^T [Wh_i || Wh_j]) 
+        # self.log_attention_weights = log_attention_weights  # whether we should log the attention weights
+        # self.attention_weights = None  # for later visualization purposes, I cache the weights here
 
-            where || denotes the concatenation operation, and a and W are the learnable parameters.
+        #self.init_params(layer_type)
 
-        Args:
-            h_transformed (torch.Tensor): Transformed feature matrix with shape (n_nodes, n_heads, n_hidden),
-                where n_nodes is the number of nodes and out_features is the number of output features per node.
+    # def init_params(self, layer_type):
+    #     """
+    #     The reason we're using Glorot (aka Xavier uniform) initialization is because it's a default TF initialization:
+    #         https://stackoverflow.com/questions/37350131/what-is-the-default-variable-initializer-in-tensorflow
+    #     The original repo was developed in TensorFlow (TF) and they used the default initialization.
+    #     Feel free to experiment - there may be better initializations depending on your problem.
+    #     """
+    #     return
 
-        Returns:
-            torch.Tensor: Attention score matrix with shape (n_heads, n_nodes, n_nodes), where n_nodes is the number of nodes.
-        """
+    def transpose_for_scores(self, x):
+        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        x = x.view(*new_x_shape)
+        return x.permute(0, 2, 1, 3)
+
+    def forward(self, data):
+        # attn_mask : [env*seq_lenght, num_human, num_human]
+
+        input_traj = data[0]
+        attn_mask = data[1]
+        new_mask = []
+        for _ in range(self.num_attention_heads):
+            new_mask.append(attn_mask)
+        new_mask = torch.stack(new_mask, dim=1)
+
+        embed_input = self.embedding_layer(input_traj)
+
+        mixed_query_layer = self.query(embed_input)  # [Batch_size x Seq_length x Hidden_size]
+        mixed_key_layer = self.key(embed_input)  # [Batch_size x Seq_length x Hidden_size]
+        mixed_value_layer = self.value(embed_input)  # [Batch_size x Seq_length x Hidden_size]
+
+        query_layer = self.transpose_for_scores(mixed_query_layer)  # [Batch_size x Num_of_heads x Seq_length x Head_size]
+        key_layer   = self.transpose_for_scores(mixed_key_layer)  # [Batch_size x Num_of_heads x Seq_length x Head_size]
+        value_layer = self.transpose_for_scores(mixed_value_layer)  # [Batch_size x Num_of_heads x Seq_length x Head_size]
+
+        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
+
+        attention_scores = attention_scores / math.sqrt(
+            self.attention_head_size)  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
         
-        source_scores = torch.matmul(h_transformed, self.a[:, :self.n_hidden, :])
-        target_scores = torch.matmul(h_transformed, self.a[:, self.n_hidden:, :])
+        attention_scores.masked_fill_(new_mask<0.1, -1e10)
 
-        # broadcast add 
-        # (n_heads, n_nodes, 1) + (n_heads, 1, n_nodes) = (n_heads, n_nodes, n_nodes)
-        e = source_scores + target_scores.mT
-        return self.leakyrelu(e)
+        attention_probs = nn.Softmax(dim=-1)(attention_scores)  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
+        context_layer = torch.matmul(attention_probs,
+                                     value_layer)  # [Batch_size x Num_of_heads x Seq_length x Head_size]
 
-    def forward(self,  h: torch.Tensor, adj_mat: torch.Tensor):
-        """
-        Performs a graph attention layer operation.
+        context_layer = context_layer.permute(0, 2, 1, 3).contiguous()  # [Batch_size x Seq_length x Num_of_heads x Head_size]
+        new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)  # [Batch_size x Seq_length x Hidden_size]
+        context_layer_2 = context_layer.view(*new_context_layer_shape)  # [Batch_size x Seq_length x Hidden_size]
 
-        Args:
-            h (torch.Tensor): Input tensor representing node features.
-            adj_mat (torch.Tensor): Adjacency matrix representing graph structure.
+        output = self.dense(context_layer_2)
+        attn = attention_probs.permute(0, 2, 1, 3).contiguous().sum(-2)/self.num_attention_heads 
 
-        Returns:
-            torch.Tensor: Output tensor after the graph convolution operation.
-        """
-        n_nodes = h.shape[1]
-
-        # Apply linear transformation to node feature -> W h
-        # output shape (n_nodes, n_hidden * n_heads)
-        # print(h.shape)
-        # print(self.W.shape)
-        h_transformed = torch.matmul(h, self.W)
-        h_transformed = F.dropout(h_transformed, self.dropout, training=self.training)
-
-        # splitting the heads by reshaping the tensor and putting heads dim first
-        # output shape (n_heads, n_nodes, n_hidden)
-        print(f'{h_transformed.shape = }')
-        h_transformed = h_transformed.view(-1 ,n_nodes, self.n_heads, self.n_hidden).permute(0, 2, 1, 3)
-        
-        # getting the attention scores
-        # output shape (n_heads, n_nodes, n_nodes)
-        e = self._get_attention_scores(h_transformed)
-
-        # Set the attention score for non-existent edges to -9e15 (MASKING NON-EXISTENT EDGES)
-        connectivity_mask = -9e16 * torch.ones_like(e)
-        print(f'{connectivity_mask.shape = }')
-        print(f'{adj_mat.shape = }')
-        e = torch.where(adj_mat > 0, e, connectivity_mask) # masked attention scores
-        
-        # attention coefficients are computed as a softmax over the rows
-        # for each column j in the attention score matrix e
-        attention = F.softmax(e, dim=-1)
-        attention = F.dropout(attention, self.dropout, training=self.training)
-
-        # final node embeddings are computed as a weighted average of the features of its neighbors
-        h_prime = torch.matmul(attention, h_transformed)
-
-        # concatenating/averaging the attention heads
-        # output shape (n_nodes, out_features)
-        if self.concat:
-            h_prime = h_prime.permute(1, 0, 2).contiguous().view(n_nodes, self.out_features)
-        else:
-            h_prime = h_prime.mean(dim=0)
-
-        return h_prime
+        return [output, attn_mask, attn]

@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import logging
 
-from rl.networks.GAT import GraphAttentionLayer
+
+from rl.networks.GAT import GAT
 
 # hyperparameters
 # batch_size = 64 # how many independent sequences will we process in parallel?
@@ -24,10 +26,10 @@ from rl.networks.GAT import GraphAttentionLayer
 class CryoShell(nn.Module):
     def __init__(self, vehicle_node_size, n_embd, n_feature_graph, n_head, n_layer, n_action):
         super().__init__()
-        print(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
+        logging.info(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
         self.vehicle_embedding = nn.Linear(vehicle_node_size, n_embd)
         # self.AttentionGraphLayer = nn.Sequential(*[GraphAttentionLayer(n_embd, n_embd, n_head, concat=True, dropout=dropout) for _ in range(n_layer)])
-        self.AttentionGraphLayer = GraphAttentionLayer(n_feature_graph, n_embd, n_head, concat=True)
+        self.AttentionGraphLayer = GAT(n_layer, [n_head]*n_layer, (torch.zeros(n_layer+1)+n_embd).int().tolist())
         self.GatedRecurrentUnit = nn.GRU(n_embd, n_embd, n_layer)
         self.action_head = nn.Linear(n_embd, n_action)
 
@@ -45,7 +47,7 @@ class CryoShell(nn.Module):
         vehicle_node = self.vehicle_embedding(vehicle_node)
 
         # graph: [batch_size, n_embd, n_embd]
-        graph = self.AttentionGraphLayer(graph, adj_mat)
+        graph = self.AttentionGraphLayer((graph, adj_mat))
 
         # sum the vehicle node and the graph
         # [batch_size, n_embd]

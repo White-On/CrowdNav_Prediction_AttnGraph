@@ -183,11 +183,13 @@ def main():
 
             dones[step] = next_done
 
+            exit(0)
+
             with torch.no_grad():
                 action, logprob, _, value = agent.get_action_and_value(observations_graph_features[step], observations_node_vehicle[step], observations_visible_masks[step])
                 values[step] = value.flatten()
 
-            exit(0)
+            
 
             obs, reward, done, info = env.step(action)
             
