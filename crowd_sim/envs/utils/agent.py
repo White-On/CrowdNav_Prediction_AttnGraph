@@ -277,11 +277,16 @@ class Agent(object):
             self.relative_speed = action.v
 
         pos = self.compute_position(action, self.time_step)
+
+        if self.kinematics == 'bicycle':
+            self.vx = pos[0] - self.px
+            self.vy = pos[1] - self.py
+            
         self.px, self.py = pos
 
     def one_step_lookahead(self, pos, action):
         px, py = pos
-        self.check_validity(action)
+        # self.check_validity(action)
         new_px = px + action.vx * self.time_step
         new_py = py + action.vy * self.time_step
         new_vx = action.vx

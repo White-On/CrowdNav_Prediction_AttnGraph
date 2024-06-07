@@ -47,7 +47,7 @@ def main():
     arena_viz_factor = 2
 
     # set up visualization
-    fig, ax = plt.subplots(figsize=(5, 5))
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.set_ylim(-arena_size*arena_viz_factor, arena_size*arena_viz_factor)
     ax.axes.xaxis.set_visible(False)
@@ -80,7 +80,7 @@ def main():
     #     print(f"{action = }, {cliped_action = }")
 
     num_steps = 200
-    num_episodes = 20
+    num_episodes = 1
     log_file = 'env_experiment.log'
     save = True
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
@@ -112,6 +112,7 @@ def main():
             closest_human_distance = np.min(distance_from_humans)
 
             speed = np.clip(closest_human_distance*0.2, 0, 1)
+            # speed = 1
             # print(f'Step: {step+1}, {speed = }', f'{angle_to_take = }')
             
             obs, reward, done, info = env.step([speed, angle_to_take])

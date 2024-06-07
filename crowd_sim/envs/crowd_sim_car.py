@@ -165,6 +165,31 @@ class CrowdSimCar(CrowdSimPred):
 
         return ob
     
+    def get_human_actions(self):
+        # step all humans
+        human_actions = []  # a list of all humans' actions
+
+        for i, human in enumerate(self.humans):
+            # observation for humans is always coordinates
+            ob = []
+            for other_human in self.humans:
+                if other_human != human:
+                    # Else detectable humans are always observable to each other
+                    if self.detect_visible(human, other_human):
+                        ob.append(other_human.get_observable_state())
+                    else:
+                        ob.append(self.dummy_human.get_observable_state())
+
+            if self.robot.visible:    
+                if self.detect_visible(self.humans[i], self.robot):
+                    ob += [self.robot.get_observable_state()]
+                else:
+                    ob += [self.dummy_robot.get_observable_state()]
+
+            human_actions.append(human.act(ob))
+
+        return human_actions
+    
     def step(self, action, update=True):
         """
         step function
