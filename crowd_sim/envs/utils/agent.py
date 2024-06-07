@@ -73,6 +73,9 @@ class Agent(object):
             self.radius = radius
         if v_pref is not None:
             self.v_pref = v_pref
+        
+        self.path = self.create_path()
+
 
     # self.px, self.py, self.vx, self.vy, self.radius, self.gx, self.gy, self.v_pref, self.theta
     def set_list(self, px, py, vx, vy, radius, gx, gy, v_pref, theta):
@@ -85,6 +88,8 @@ class Agent(object):
         self.theta = theta
         self.radius = radius
         self.v_pref = v_pref
+
+        self.path = self.create_path()
 
     def get_observable_state(self):
         return ObservableState(self.px, self.py, self.vx, self.vy, self.radius)
@@ -272,11 +277,16 @@ class Agent(object):
             self.relative_speed = action.v
 
         pos = self.compute_position(action, self.time_step)
+
+        if self.kinematics == 'bicycle':
+            self.vx = pos[0] - self.px
+            self.vy = pos[1] - self.py
+            
         self.px, self.py = pos
 
     def one_step_lookahead(self, pos, action):
         px, py = pos
-        self.check_validity(action)
+        # self.check_validity(action)
         new_px = px + action.vx * self.time_step
         new_py = py + action.vy * self.time_step
         new_vx = action.vx
@@ -292,4 +302,14 @@ class Agent(object):
         self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
         self.goal_cusor = 0
         self.path = self.create_path()
+    
+    def get_future_traj(self, horizon):
+        future_traj = []
+        pos = self.get_position()
+        for i in range(horizon):
+            action = self.policy.act(None)
+            pos = self.one_step_lookahead(pos, action)
+            future_traj.append(pos)
+        return future_traj
+
 
