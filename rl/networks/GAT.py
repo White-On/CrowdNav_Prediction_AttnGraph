@@ -92,16 +92,19 @@ class GraphAttentionLayer(nn.Module):
         Returns:
             torch.Tensor: Output tensor after the graph convolution operation.
         """
-        n_nodes = h.shape[0]
+        n_nodes = h.shape[1]
 
         # Apply linear transformation to node feature -> W h
         # output shape (n_nodes, n_hidden * n_heads)
-        h_transformed = torch.mm(h, self.W)
+        # print(h.shape)
+        # print(self.W.shape)
+        h_transformed = torch.matmul(h, self.W)
         h_transformed = F.dropout(h_transformed, self.dropout, training=self.training)
 
         # splitting the heads by reshaping the tensor and putting heads dim first
         # output shape (n_heads, n_nodes, n_hidden)
-        h_transformed = h_transformed.view(n_nodes, self.n_heads, self.n_hidden).permute(1, 0, 2)
+        print(f'{h_transformed.shape = }')
+        h_transformed = h_transformed.view(-1 ,n_nodes, self.n_heads, self.n_hidden).permute(0, 2, 1, 3)
         
         # getting the attention scores
         # output shape (n_heads, n_nodes, n_nodes)
@@ -109,8 +112,8 @@ class GraphAttentionLayer(nn.Module):
 
         # Set the attention score for non-existent edges to -9e15 (MASKING NON-EXISTENT EDGES)
         connectivity_mask = -9e16 * torch.ones_like(e)
-        # print(connectivity_mask.shape)
-        # print(adj_mat.shape)
+        print(f'{connectivity_mask.shape = }')
+        print(f'{adj_mat.shape = }')
         e = torch.where(adj_mat > 0, e, connectivity_mask) # masked attention scores
         
         # attention coefficients are computed as a softmax over the rows

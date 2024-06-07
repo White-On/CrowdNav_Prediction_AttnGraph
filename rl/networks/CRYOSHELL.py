@@ -2,29 +2,30 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from GAT import GraphAttentionLayer
+from rl.networks.GAT import GraphAttentionLayer
 
 # hyperparameters
-batch_size = 64 # how many independent sequences will we process in parallel?
-vehicle_node_size = 8
-max_iters = 5000
-eval_interval = 500
-learning_rate = 3e-4
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 200
-n_embd = 64
-n_feature_graph = 64
-n_head = 4
-n_layer = 2
-n_action = 2
-dropout = 0.2
+# batch_size = 64 # how many independent sequences will we process in parallel?
+# vehicle_node_size = 8
+# max_iters = 5000
+# eval_interval = 500
+# learning_rate = 3e-4
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# eval_iters = 200
+# n_embd = 64
+# n_feature_graph = 64
+# n_head = 4
+# n_layer = 2
+# n_action = 2
+# dropout = 0.2
 
 
 
 class CryoShell(nn.Module):
-    def __init__(self):
+    def __init__(self, vehicle_node_size, n_embd, n_feature_graph, n_head, n_layer, n_action):
         super().__init__()
-        self.vehicle_embedding = nn.Embedding(vehicle_node_size, n_embd)
+        print(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
+        self.vehicle_embedding = nn.Linear(vehicle_node_size, n_embd)
         # self.AttentionGraphLayer = nn.Sequential(*[GraphAttentionLayer(n_embd, n_embd, n_head, concat=True, dropout=dropout) for _ in range(n_layer)])
         self.AttentionGraphLayer = GraphAttentionLayer(n_feature_graph, n_embd, n_head, concat=True)
         self.GatedRecurrentUnit = nn.GRU(n_embd, n_embd, n_layer)
@@ -37,6 +38,10 @@ class CryoShell(nn.Module):
         # graph: [batch_size, n_embd, n_embd]
 
         # vehicle_node: [batch_size, n_embd]
+        print(f'vehicle_node: {vehicle_node.shape}')
+        print(f'graph: {graph.shape}')
+        print(f'adj_mat: {adj_mat.shape}')
+
         vehicle_node = self.vehicle_embedding(vehicle_node)
 
         # graph: [batch_size, n_embd, n_embd]
@@ -59,18 +64,18 @@ class CryoShell(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
         
     
-model = CryoShell()
-m = model.to(device)
-# print the number of parameters in the model
-print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+# model = CryoShell()
+# m = model.to(device)
+# # print the number of parameters in the model
+# print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 
-# create a PyTorch optimizer
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+# # create a PyTorch optimizer
+# optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-# ici
-adj_mat = torch.randint(0, 2, (batch_size, n_embd)).to(device)
-graph = torch.randn(batch_size, n_feature_graph).to(device)
-vehicle_node = torch.randint(0, vehicle_node_size, (batch_size,)).to(device)
+# # ici
+# adj_mat = torch.randint(0, 2, (batch_size, n_embd)).to(device)
+# graph = torch.randn(batch_size, n_feature_graph).to(device)
+# vehicle_node = torch.randint(0, vehicle_node_size, (batch_size,)).to(device)
 
 
 
