@@ -123,7 +123,7 @@ def main():
     env.reset()
 
     num_steps = 200
-    num_updates = 10
+    num_updates = 1
     log_file = 'env_experiment.log'
     save = False
     learning_rate = 1e-4
