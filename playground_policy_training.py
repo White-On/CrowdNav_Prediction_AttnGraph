@@ -49,8 +49,8 @@ class Agent(nn.Module):
 
         self.actor_logstd = nn.Parameter(torch.zeros(1, 2))
 
-    def get_value(self, x):
-        return self.critic(x)
+    def get_value(self, graph_feature):
+        return self.critic(graph_feature.view(-1, self.shape_input))
 
     def get_action_and_value(self, graph_feature, robot_node, visibility_mask, action=None):
         action_mean = self.actor(graph_feature, visibility_mask, robot_node)
@@ -128,12 +128,22 @@ def main():
     num_steps = 200
     num_updates = 1
     log_file = 'env_experiment.log'
-    save = True
+    save = False
     learning_rate = 1e-4
     nb_actions = 2
     gae = True
     gamma = 0.99
     gae_lambda = 0.95
+    batch_size = 32
+    nb_update_epochs = 4
+    clip_coef = 0.2
+    minibatch_size = 16
+    clip_vloss = True
+    norm_adv = True
+    vf_coef = 0.5
+    ent_coef = 0.01
+    target_kl = 0.01
+    max_grad_norm = 0.5
 
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
@@ -189,8 +199,6 @@ def main():
 
             dones[step] = next_done
 
-            
-
             with torch.no_grad():
                 action, logprob, _, value = agent.get_action_and_value(
                     observations_graph_features[step], 
@@ -205,11 +213,16 @@ def main():
             
 
             obs, reward, done, info = env.step(action)
+
+            next_obs_graph_features = torch.Tensor(obs['graph_features'])
+            next_obs_node_vehicle = torch.Tensor(obs['robot_node'])
+            next_obs_visible_masks = torch.Tensor(obs['visible_masks'])
+
             rewards[step] = torch.tensor(reward)
 
             # bootstrap value if not done
             with torch.no_grad():
-                next_value = agent.get_value(next_obs).reshape(1, -1)
+                next_value = agent.get_value(next_obs_graph_features).reshape(1, -1)
                 if gae:
                     advantages = torch.zeros_like(rewards)
                     lastgaelam = 0
@@ -235,26 +248,75 @@ def main():
                         returns[t] = rewards[t] + gamma * nextnonterminal * next_return
                     advantages = returns - values
             
-            exit(0)
-
-            # idx_done = np.where(done)[0]
-            # if len(idx_done) > 0:
-            #     logging.info(f"Episode {episode+1} finished at step {step+1}, status: {info[idx_done[0]].get('info')}")
-            #     if save:
-            #         log_results_episodes['episode'].append(episode)
-            #         log_results_episodes['status'].append(info[idx_done[0]].get('info').__class__.__name__)
-            #         log_results_episodes['reward'].append(reward[idx_done[0]])
-            #         log_results_episodes['steps'].append(step+1)
-
+            logging.info(f"{advantages.shape = }")
+            logging.info(f"{returns.shape = }")
+            
             out_pred = obs['graph_features'][0, :, 2:]
             ack = env.envs[0].talk2Env(out_pred)
             
-            # print(f"{obs = }")
-            # logging.info(f'Step: {step+1}, reward value: {reward[0]:.2f}, done: {done[0]}, status: {info[0].get("info")}')
+        
+            # Optimizing the policy and value network
+            b_inds = np.arange(batch_size)
+            clipfracs = []
+            for epoch in range(nb_update_epochs):
+                np.random.shuffle(b_inds)
+                for start in range(0, batch_size, minibatch_size):
+                    end = start + minibatch_size
+                    mb_inds = b_inds[start:end]
+
+                    _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
+                    logratio = newlogprob - b_logprobs[mb_inds]
+                    ratio = logratio.exp()
+
+                    with torch.no_grad():
+                        # calculate approx_kl http://joschu.net/blog/kl-approx.html
+                        old_approx_kl = (-logratio).mean()
+                        approx_kl = ((ratio - 1) - logratio).mean()
+                        clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
+
+                    mb_advantages = b_advantages[mb_inds]
+                    if norm_adv:
+                        mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+
+                    # Policy loss
+                    pg_loss1 = -mb_advantages * ratio
+                    pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+                    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+
+                    # Value loss
+                    newvalue = newvalue.view(-1)
+                    if clip_vloss:
+                        v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
+                        v_clipped = b_values[mb_inds] + torch.clamp(
+                            newvalue - b_values[mb_inds],
+                            -clip_coef,
+                            clip_coef,
+                        )
+                        v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
+                        v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
+                        v_loss = 0.5 * v_loss_max.mean()
+                    else:
+                        v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+
+                    entropy_loss = entropy.mean()
+                    loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
+
+                    optimizer.zero_grad()
+                    loss.backward()
+                    nn.utils.clip_grad_norm_(agent.parameters(), max_grad_norm)
+                    optimizer.step()
+
+                if target_kl is not None:
+                    if approx_kl > target_kl:
+                        break
+            
+            exit(0)
 
     plt.show()
     if save:
         pd.DataFrame(log_results_episodes).to_csv(log_file, index=False)
+    
+    env.close()
 
 if __name__ == '__main__':
     main()
