@@ -62,9 +62,6 @@ class Agent(nn.Module):
             action = probs.sample()
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(graph_feature.view(-1, self.shape_input))
 
-
-
-
 def main():
     from importlib import import_module
     model_dir = 'trained_models/env_experiment'
@@ -115,7 +112,7 @@ def main():
     plt.show()
 
     seed = np.random.randint(0, 1000)
-    nb_enviroments = 2
+    nb_enviroments = 1
 
     # env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv(
@@ -126,11 +123,10 @@ def main():
     env.reset()
 
     num_steps = 200
-    num_updates = 1
+    num_updates = 10
     log_file = 'env_experiment.log'
     save = False
     learning_rate = 1e-4
-    nb_actions = 2
     gae = True
     gamma = 0.99
     gae_lambda = 0.95
@@ -157,8 +153,8 @@ def main():
     observations_graph_features = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['graph_features'].shape[0], env.envs[0].observation_space.spaces['graph_features'].shape[1]))
     observations_node_vehicle = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['robot_node'].shape[0]))
     observations_visible_masks = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['visible_masks'].shape[0], env.envs[0].observation_space.spaces['visible_masks'].shape[0]))
-    actions = torch.zeros((num_steps, nb_enviroments, nb_actions))
-    logprobs = torch.zeros((num_steps, nb_enviroments, nb_actions))
+    actions = torch.zeros((num_steps, nb_enviroments, env.envs[0].action_space.shape[0]))
+    logprobs = torch.zeros((num_steps, nb_enviroments))
     rewards = torch.zeros((num_steps, nb_enviroments))
     dones = torch.zeros((num_steps, nb_enviroments))
     values = torch.zeros((num_steps, nb_enviroments))
@@ -210,8 +206,6 @@ def main():
             actions[step] = action
             logprobs[step] = logprob
 
-            
-
             obs, reward, done, info = env.step(action)
 
             next_obs_graph_features = torch.Tensor(obs['graph_features'])
@@ -220,97 +214,112 @@ def main():
 
             rewards[step] = torch.tensor(reward)
 
-            # bootstrap value if not done
-            with torch.no_grad():
-                next_value = agent.get_value(next_obs_graph_features).reshape(1, -1)
-                if gae:
-                    advantages = torch.zeros_like(rewards)
-                    lastgaelam = 0
-                    for t in reversed(range(num_steps)):
-                        if t == num_steps - 1:
-                            nextnonterminal = 1.0 - next_done
-                            nextvalues = next_value
-                        else:
-                            nextnonterminal = 1.0 - dones[t + 1]
-                            nextvalues = values[t + 1]
-                        delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
-                        advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
-                    returns = advantages + values
-                else:
-                    returns = torch.zeros_like(rewards)
-                    for t in reversed(range(num_steps)):
-                        if t == num_steps - 1:
-                            nextnonterminal = 1.0 - next_done
-                            next_return = next_value
-                        else:
-                            nextnonterminal = 1.0 - dones[t + 1]
-                            next_return = returns[t + 1]
-                        returns[t] = rewards[t] + gamma * nextnonterminal * next_return
-                    advantages = returns - values
-            
-            logging.info(f"{advantages.shape = }")
-            logging.info(f"{returns.shape = }")
-            
-            out_pred = obs['graph_features'][0, :, 2:]
-            ack = env.envs[0].talk2Env(out_pred)
-            
-        
-            # Optimizing the policy and value network
-            b_inds = np.arange(batch_size)
-            clipfracs = []
-            for epoch in range(nb_update_epochs):
-                np.random.shuffle(b_inds)
-                for start in range(0, batch_size, minibatch_size):
-                    end = start + minibatch_size
-                    mb_inds = b_inds[start:end]
+            idx_done = np.where(done)[0]
+            for idx in idx_done:
+                env.envs[idx].reset()
 
-                    _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
-                    logratio = newlogprob - b_logprobs[mb_inds]
-                    ratio = logratio.exp()
-
-                    with torch.no_grad():
-                        # calculate approx_kl http://joschu.net/blog/kl-approx.html
-                        old_approx_kl = (-logratio).mean()
-                        approx_kl = ((ratio - 1) - logratio).mean()
-                        clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
-
-                    mb_advantages = b_advantages[mb_inds]
-                    if norm_adv:
-                        mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
-
-                    # Policy loss
-                    pg_loss1 = -mb_advantages * ratio
-                    pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-
-                    # Value loss
-                    newvalue = newvalue.view(-1)
-                    if clip_vloss:
-                        v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
-                        v_clipped = b_values[mb_inds] + torch.clamp(
-                            newvalue - b_values[mb_inds],
-                            -clip_coef,
-                            clip_coef,
-                        )
-                        v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
-                        v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-                        v_loss = 0.5 * v_loss_max.mean()
+        # bootstrap value if not done
+        with torch.no_grad():
+            next_value = agent.get_value(next_obs_graph_features).reshape(1, -1)
+            if gae:
+                advantages = torch.zeros_like(rewards)
+                lastgaelam = 0
+                for t in reversed(range(num_steps)):
+                    if t == num_steps - 1:
+                        nextnonterminal = 1.0 - next_done
+                        nextvalues = next_value
                     else:
-                        v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+                        nextnonterminal = 1.0 - dones[t + 1]
+                        nextvalues = values[t + 1]
+                    delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
+                    advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
+                returns = advantages + values
+            else:
+                returns = torch.zeros_like(rewards)
+                for t in reversed(range(num_steps)):
+                    if t == num_steps - 1:
+                        nextnonterminal = 1.0 - next_done
+                        next_return = next_value
+                    else:
+                        nextnonterminal = 1.0 - dones[t + 1]
+                        next_return = returns[t + 1]
+                    returns[t] = rewards[t] + gamma * nextnonterminal * next_return
+                advantages = returns - values
+        
+        # logging.info(f"{advantages.shape = }")
+        # logging.info(f"{returns.shape = }")
+        
+        out_pred = obs['graph_features'][0, :, 2:]
+        ack = env.envs[0].talk2Env(out_pred)
 
-                    entropy_loss = entropy.mean()
-                    loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
+        # flatten the batch
+        b_obs_graph_features = observations_graph_features.reshape((-1,) + env.envs[0].observation_space.spaces['graph_features'].shape)
+        b_obs_node_vehicle = observations_node_vehicle.reshape((-1,) + env.envs[0].observation_space.spaces['robot_node'].shape)
+        b_obs_visible_masks = observations_visible_masks.reshape((-1,) + env.envs[0].observation_space.spaces['visible_masks'].shape)
 
-                    optimizer.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_(agent.parameters(), max_grad_norm)
-                    optimizer.step()
+        b_logprobs = logprobs.reshape(-1)
+        b_actions = actions.reshape((-1,env.envs[0].action_space.shape[0]))
+        b_advantages = advantages.reshape(-1)
+        b_returns = returns.reshape(-1)
+        b_values = values.reshape(-1)
 
-                if target_kl is not None:
-                    if approx_kl > target_kl:
-                        break
+        
+    
+        # Optimizing the policy and value network
+        b_inds = np.arange(batch_size)
+        clipfracs = []
+        for epoch in range(nb_update_epochs):
+            np.random.shuffle(b_inds)
+            for start in range(0, batch_size, minibatch_size):
+                end = start + minibatch_size
+                mb_inds = b_inds[start:end]
+
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs_graph_features[mb_inds], b_obs_node_vehicle[mb_inds], b_obs_visible_masks[mb_inds], b_actions[mb_inds])
+                logratio = newlogprob - b_logprobs[mb_inds]
+                ratio = logratio.exp()
+
+                with torch.no_grad():
+                    # calculate approx_kl http://joschu.net/blog/kl-approx.html
+                    old_approx_kl = (-logratio).mean()
+                    approx_kl = ((ratio - 1) - logratio).mean()
+                    clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
+
+                mb_advantages = b_advantages[mb_inds]
+                if norm_adv:
+                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+
+                # Policy loss
+                pg_loss1 = -mb_advantages * ratio
+                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+                pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+
+                # Value loss
+                newvalue = newvalue.view(-1)
+                if clip_vloss:
+                    v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
+                    v_clipped = b_values[mb_inds] + torch.clamp(
+                        newvalue - b_values[mb_inds],
+                        -clip_coef,
+                        clip_coef,
+                    )
+                    v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
+                    v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
+                    v_loss = 0.5 * v_loss_max.mean()
+                else:
+                    v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+
+                entropy_loss = entropy.mean()
+                loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
+
+                optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_(agent.parameters(), max_grad_norm)
+                optimizer.step()
+
+            if target_kl is not None:
+                if approx_kl > target_kl:
+                    break
             
-            exit(0)
 
     plt.show()
     if save:
