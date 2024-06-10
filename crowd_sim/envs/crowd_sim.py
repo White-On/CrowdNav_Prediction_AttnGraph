@@ -127,11 +127,11 @@ class CrowdSim(gym.Env):
         self.dummy_human = Human(self.config, 'humans')
         # if a human is not in view, set its state to (px = 100, py = 100, vx = 0, vy = 0, theta = 0, radius = 0)
         self.dummy_human.set(7, 7, 7, 7, 0, 0, 0) # (7, 7, 7, 7, 0, 0, 0)
-        self.dummy_human.time_step = config.env.time_step
+        self.dummy_human.delta_t = config.env.time_step
 
         self.dummy_robot = Robot(self.config, 'robot')
         self.dummy_robot.set(7, 7, 7, 7, 0, 0, 0)
-        self.dummy_robot.time_step = config.env.time_step
+        self.dummy_robot.delta_t = config.env.time_step
         self.dummy_robot.kinematics = 'holonomic'
         self.dummy_robot.policy = ORCA(config)
 

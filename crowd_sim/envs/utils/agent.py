@@ -8,48 +8,36 @@ from crowd_sim.envs.utils.state import ObservableState, FullState
 
 
 class Agent(object):
-    def __init__(self, config, section):
+    
+    def __init__(self, visible:bool, desired_speed:float, radius:float, FOV:float, delta_t:float, **kwargs):
         """
         Base class for robot and human. Have the physical attributes of an agent.
 
         """
-        subconfig = config.robot if section == 'robot' else config.humans
-        self.visible = subconfig.visible
-        self.v_pref = subconfig.v_pref
-        self.radius = subconfig.radius
-        # randomize neighbor_dist of ORCA
-        if config.env.randomize_attributes:
-            config.orca.neighbor_dist = np.random.uniform(5, 10)
-        self.policy = policy_factory[subconfig.policy](config)
-        self.sensor = subconfig.sensor
-        self.FOV = np.pi * subconfig.FOV
-        # for humans: we only have holonomic kinematics; for robot: depend on config
-        self.kinematics = 'holonomic' if section == 'humans' else config.action_space.kinematics
-        self.px = None
-        self.py = None
-        self.gx = None
-        self.gy = None
-        self.vx = None
-        self.vy = None
-        self.theta = None
-        self.time_step = config.env.time_step
-        self.policy.time_step = config.env.time_step
+        self.visible = visible
+        self.desired_speed = desired_speed
+        self.radius = radius
+        self.FOV = np.pi * FOV
+        self.coordinates = [None, None]
+        self.speed = [None, None]
+        self.orientation = None
+        self.delta_t = delta_t
+        self.arena_size = 6 if kwargs['arena_size'] is None else kwargs['arena_size']
+        self.other_attribute = kwargs
+
 
         # TODO collect collection of goals from config file
+        # TODO Move all that in Robot class 
         nb_goals = 5
-        arena_size = 6
-        self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
-        # self.collection_goal_coordinates = np.vstack((np.arange(nb_goals), np.zeros(nb_goals))).reshape(2, nb_goals).T
+        self.collection_goal_coordinates = np.random.uniform(-self.arena_size, self.arena_size, (nb_goals, 2))
         self.path = None
-        self.goal_cusor = 0
+        self.current_goal_cusor = 0
         self.relative_speed = 1.0
         self.acceleration_limits = [0.5, 2.0]
         self.robot_size = 0.3
 
-
-    def print_info(self):
-        logging.info('Agent is {} and has {} kinematic constraint'.format(
-            'visible' if self.visible else 'invisible', self.kinematics))
+    def __str__():
+        pass
 
 
     def sample_random_attributes(self):
@@ -102,7 +90,7 @@ class Agent(object):
 
     def get_next_observable_state(self, action):
         self.check_validity(action)
-        pos = self.compute_position(action, self.time_step)
+        pos = self.compute_position(action, self.delta_t)
         next_px, next_py = pos
         if self.kinematics == 'holonomic':
             next_vx = action.vx
@@ -138,13 +126,13 @@ class Agent(object):
 
     def get_current_goal(self):
         # TODO add to reach more than one goal in the future
-        if self.goal_cusor >= len(self.collection_goal_coordinates):
+        if self.current_goal_cusor >= len(self.collection_goal_coordinates):
             return None
         else:
-            return self.collection_goal_coordinates[self.goal_cusor]
+            return self.collection_goal_coordinates[self.current_goal_cusor]
 
     def next_goal(self):   
-        self.goal_cusor += 1
+        self.current_goal_cusor += 1
     
     def relative_state(self):
         robot_pos = self.get_position()
@@ -245,7 +233,7 @@ class Agent(object):
 
     def get_distance_from_path(self):
         position = self.get_position()
-        idx = self.goal_cusor
+        idx = self.current_goal_cusor
         path = self.path[idx].reshape(2,2)
 
         if np.array_equal(position, path[0]):
@@ -276,7 +264,7 @@ class Agent(object):
         if self.kinematics == 'bicycle':
             self.relative_speed = action.v
 
-        pos = self.compute_position(action, self.time_step)
+        pos = self.compute_position(action, self.delta_t)
 
         if self.kinematics == 'bicycle':
             self.vx = pos[0] - self.px
@@ -287,8 +275,8 @@ class Agent(object):
     def one_step_lookahead(self, pos, action):
         px, py = pos
         # self.check_validity(action)
-        new_px = px + action.vx * self.time_step
-        new_py = py + action.vy * self.time_step
+        new_px = px + action.vx * self.delta_t
+        new_py = py + action.vy * self.delta_t
         new_vx = action.vx
         new_vy = action.vy
         return [new_px, new_py, new_vx, new_vy]
@@ -300,7 +288,7 @@ class Agent(object):
         nb_goals = 5
         arena_size = 6
         self.collection_goal_coordinates = np.random.uniform(-arena_size, arena_size, (nb_goals, 2))
-        self.goal_cusor = 0
+        self.current_goal_cusor = 0
         self.path = self.create_path()
     
     def get_future_traj(self, horizon):

@@ -1,0 +1,8 @@
+INFO 2024-06-07 10:25:34,311 [playground_policy_training.py:main:82] Importing arguments from trained_models.env_experiment.arguments.py
+INFO 2024-06-07 10:25:34,324 [playground_policy_training.py:main:96] Importing Config from trained_models.env_experiment.configs.config.py
+INFO 2024-06-07 10:25:34,646 [envs.py:_thunk:63] Create env: CrowdSimCar-v0
+INFO 2024-06-07 10:25:34,650 [envs.py:_thunk:63] Create env: CrowdSimCar-v0
+INFO 2024-06-07 10:25:34,694 [CRYOSHELL.py:__init__:29] CryoShell init with vehicle_node_size: 4, n_embd: 64, n_feature_graph: 12, n_head: 4, n_layer: 2, n_action: 2
+INFO 2024-06-07 10:25:34,699 [GAT.py:__init__:20] GAT with num_of_layers: 2, num_heads_per_layer: [4, 4], num_features_per_layer: [64, 64, 64], add_skip_connection: False, bias: False, dropout: 0.6, log_attention_weights: False
+INFO 2024-06-07 10:25:34,702 [GAT.py:__init__:57] GAT Layer: input_size: 64, embed_size: 64, num_head: 4, concat: False, activation: None, dropout_prob: 0.6, add_skip_connection: False, bias: False, log_attention_weights: False
+INFO 2024-06-07 10:25:34,706 [GAT.py:__init__:57] GAT Layer: input_size: 64, embed_size: 64, num_head: 4, concat: False, activation: None, dropout_prob: 0.6, add_skip_connection: False, bias: False, log_attention_weights: False
