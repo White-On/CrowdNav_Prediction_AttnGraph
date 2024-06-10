@@ -29,7 +29,7 @@ class CryoShell(nn.Module):
         logging.info(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
         self.vehicle_embedding = nn.Linear(vehicle_node_size, n_embd)
         # self.AttentionGraphLayer = nn.Sequential(*[GraphAttentionLayer(n_embd, n_embd, n_head, concat=True, dropout=dropout) for _ in range(n_layer)])
-        self.AttentionGraphLayer = GAT(n_layer, [n_head]*n_layer, (torch.zeros(n_layer+1)+n_embd).int().tolist())
+        self.AttentionGraphLayer = GAT(n_layer, [n_head]*n_layer, (torch.zeros(n_layer+1)+n_feature_graph).int().tolist())
         self.GatedRecurrentUnit = nn.GRU(n_embd, n_embd, n_layer)
         self.action_head = nn.Linear(n_embd, n_action)
 
@@ -40,18 +40,24 @@ class CryoShell(nn.Module):
         # graph: [batch_size, n_embd, n_embd]
 
         # vehicle_node: [batch_size, n_embd]
-        print(f'vehicle_node: {vehicle_node.shape}')
-        print(f'graph: {graph.shape}')
-        print(f'adj_mat: {adj_mat.shape}')
+        # logging.info(f'vehicle_node: {vehicle_node.shape}')
+        # logging.info(f'graph: {graph.shape}')
+        # logging.info(f'adj_mat: {adj_mat.shape}')
 
         vehicle_node = self.vehicle_embedding(vehicle_node)
 
         # graph: [batch_size, n_embd, n_embd]
-        graph = self.AttentionGraphLayer((graph, adj_mat))
+        output, attn_mask, attn = self.AttentionGraphLayer(graph, adj_mat)
 
         # sum the vehicle node and the graph
         # [batch_size, n_embd]
-        x = vehicle_node + graph
+        # logging.info(f'{vehicle_node.shape = }')
+        # logging.info(f'{output.shape = }')
+        # logging.info(f'{attn_mask.shape = }')
+        # logging.info(f'{attn.shape = }')
+
+        output_reduced = output.mean(dim=-1)
+        x = vehicle_node + output_reduced
         x, hn = self.GatedRecurrentUnit(x)
         x = self.action_head(x)
 

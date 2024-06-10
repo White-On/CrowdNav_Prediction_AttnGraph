@@ -90,10 +90,10 @@ class CrowdSimCar(CrowdSimPred):
         self.spatial_edge_dim = int(2*(self.predict_steps+1))
 
         observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(self.config.sim.human_num + 1, self.spatial_edge_dim), dtype=np.float32)
+                                            shape=(self.config.sim.human_num, self.spatial_edge_dim), dtype=np.float32)
         
         observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(self.config.sim.human_num,),
+                                            shape=(self.config.sim.human_num,self.config.sim.human_num),
                                             dtype=np.bool)
         
         self.observation_space = gym.spaces.Dict(observation_space)
@@ -401,7 +401,7 @@ class CrowdSimCar(CrowdSimPred):
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         # robot is always the first one
         
-        observation['graph_features'] = np.zeros((self.human_num + 1, (self.predict_steps+1), 2))
+        observation['graph_features'] = np.zeros((self.human_num, (self.predict_steps+1), 2))
         # print(f"graph_features: {observation['graph_features'].shape}")
 
         for i in range(self.human_num):
@@ -423,10 +423,10 @@ class CrowdSimCar(CrowdSimPred):
 
         # add robot future traj
         # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
-        robot_future_traj = np.random.rand(self.predict_steps+1, 2)
-        observation['graph_features'][-1] = robot_future_traj
+        # robot_future_traj = np.random.rand(self.predict_steps+1, 2)
+        # observation['graph_features'][-1] = robot_future_traj
 
-        observation['graph_features'] = observation['graph_features'].reshape(self.human_num + 1, -1)
+        observation['graph_features'] = observation['graph_features'].reshape(self.human_num, -1)
 
         self.update_last_human_states(self.human_visibility, reset=reset)
 
@@ -452,7 +452,7 @@ class CrowdSimCar(CrowdSimPred):
 
         # robot_future_traj = np.array(self.robot.get_future_traj(self.predict_steps))
 
-        observation['visible_masks'] = np.array(self.human_visibility)
+        observation['visible_masks'] = np.tile(self.human_visibility, (self.human_num, 1))
 
         return observation
     

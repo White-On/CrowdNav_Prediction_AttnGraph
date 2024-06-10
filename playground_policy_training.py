@@ -30,9 +30,9 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, envs):
         super(Agent, self).__init__()
-        shape_input = np.array(envs.envs[0].observation_space.spaces['graph_features'].shape).prod()
+        self.shape_input = np.array(envs.envs[0].observation_space.spaces['graph_features'].shape).prod()
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(shape_input, 64)),
+            layer_init(nn.Linear(self.shape_input, 64)),
             nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
             nn.Tanh(),
@@ -40,7 +40,7 @@ class Agent(nn.Module):
         )
         self.actor = CryoShell(
             vehicle_node_size=envs.envs[0].observation_space.spaces['robot_node'].shape[0],
-            n_embd=64,
+            n_embd=envs.envs[0].observation_space.spaces['graph_features'].shape[0],
             n_feature_graph=envs.envs[0].spatial_edge_dim,
             n_head=4,
             n_layer=2,
@@ -54,12 +54,13 @@ class Agent(nn.Module):
 
     def get_action_and_value(self, graph_feature, robot_node, visibility_mask, action=None):
         action_mean = self.actor(graph_feature, visibility_mask, robot_node)
+        # logging.info(f"{action_mean = }")
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(graph_feature)
+        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(graph_feature.view(-1, self.shape_input))
 
 
 
@@ -129,6 +130,10 @@ def main():
     log_file = 'env_experiment.log'
     save = True
     learning_rate = 1e-4
+    nb_actions = 2
+    gae = True
+    gamma = 0.99
+    gae_lambda = 0.95
 
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
@@ -136,13 +141,14 @@ def main():
     delta_action_space = [env.envs[0].action_space.low[1], env.envs[0].action_space.high[1]]
 
     agent = Agent(env)
+    # logging.info(f"{agent.actor = }")
     optimizer = optim.Adam(agent.parameters(), lr=learning_rate, eps=1e-5)
     
     observations_graph_features = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['graph_features'].shape[0], env.envs[0].observation_space.spaces['graph_features'].shape[1]))
     observations_node_vehicle = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['robot_node'].shape[0]))
-    observations_visible_masks = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['visible_masks'].shape[0]))
-    actions = torch.zeros((num_steps, nb_enviroments))
-    logprobs = torch.zeros((num_steps, nb_enviroments))
+    observations_visible_masks = torch.zeros((num_steps, nb_enviroments, env.envs[0].observation_space.spaces['visible_masks'].shape[0], env.envs[0].observation_space.spaces['visible_masks'].shape[0]))
+    actions = torch.zeros((num_steps, nb_enviroments, nb_actions))
+    logprobs = torch.zeros((num_steps, nb_enviroments, nb_actions))
     rewards = torch.zeros((num_steps, nb_enviroments))
     dones = torch.zeros((num_steps, nb_enviroments))
     values = torch.zeros((num_steps, nb_enviroments))
@@ -183,16 +189,54 @@ def main():
 
             dones[step] = next_done
 
-            exit(0)
+            
 
             with torch.no_grad():
-                action, logprob, _, value = agent.get_action_and_value(observations_graph_features[step], observations_node_vehicle[step], observations_visible_masks[step])
+                action, logprob, _, value = agent.get_action_and_value(
+                    observations_graph_features[step], 
+                    observations_node_vehicle[step], 
+                    observations_visible_masks[step]
+                    )
                 values[step] = value.flatten()
+            
+            actions[step] = action
+            logprobs[step] = logprob
 
             
 
             obs, reward, done, info = env.step(action)
+            rewards[step] = torch.tensor(reward)
+
+            # bootstrap value if not done
+            with torch.no_grad():
+                next_value = agent.get_value(next_obs).reshape(1, -1)
+                if gae:
+                    advantages = torch.zeros_like(rewards)
+                    lastgaelam = 0
+                    for t in reversed(range(num_steps)):
+                        if t == num_steps - 1:
+                            nextnonterminal = 1.0 - next_done
+                            nextvalues = next_value
+                        else:
+                            nextnonterminal = 1.0 - dones[t + 1]
+                            nextvalues = values[t + 1]
+                        delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
+                        advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
+                    returns = advantages + values
+                else:
+                    returns = torch.zeros_like(rewards)
+                    for t in reversed(range(num_steps)):
+                        if t == num_steps - 1:
+                            nextnonterminal = 1.0 - next_done
+                            next_return = next_value
+                        else:
+                            nextnonterminal = 1.0 - dones[t + 1]
+                            next_return = returns[t + 1]
+                        returns[t] = rewards[t] + gamma * nextnonterminal * next_return
+                    advantages = returns - values
             
+            exit(0)
+
             # idx_done = np.where(done)[0]
             # if len(idx_done) > 0:
             #     logging.info(f"Episode {episode+1} finished at step {step+1}, status: {info[idx_done[0]].get('info')}")

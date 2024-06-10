@@ -126,6 +126,9 @@ class GATLayer(torch.nn.Module):
         attention_scores = attention_scores / math.sqrt(
             self.attention_head_size)  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
         
+        # logging.info(f'attention_scores: {attention_scores.shape}')
+        # logging.info(f'new_mask: {new_mask.shape}')
+        
         attention_scores.masked_fill_(new_mask<0.1, -1e10)
 
         attention_probs = nn.Softmax(dim=-1)(attention_scores)  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
