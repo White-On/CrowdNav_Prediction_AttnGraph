@@ -38,6 +38,7 @@ class CrowdSimCar(CrowdSimPred):
         observation_space = {}
         forseen_index = 1
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
+        # vehicle_speed_boundries = [-0.5, 2]
         vehicle_speed_boundries = [-0.5, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
         objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
@@ -80,7 +81,8 @@ class CrowdSimCar(CrowdSimPred):
         observation_space = {}
         forseen_index = 1
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
-        vehicle_speed_boundries = [-0.5, 2]
+        # vehicle_speed_boundries = [-0.5, 2]
+        vehicle_speed_boundries = [0, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
         objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
         all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
@@ -523,7 +525,8 @@ class CrowdSimCar(CrowdSimPred):
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
-        reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
+        # reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
+        reward = collision_reward + speed_reward + angular_reward + proximity_reward
 
         # print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
 

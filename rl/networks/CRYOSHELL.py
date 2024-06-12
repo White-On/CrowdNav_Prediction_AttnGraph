@@ -71,6 +71,7 @@ class CryoShell(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
         
+        
     
 # model = CryoShell()
 # m = model.to(device)
