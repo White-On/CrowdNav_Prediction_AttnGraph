@@ -14,7 +14,7 @@ def logging_setup(log_file):
 
     level = logging.INFO
     logger.setLevel(logging.INFO)
-    shell_handler.setLevel(logging.INFO)
+    shell_handler.setLevel(logging.DEBUG)
     file_handler.setLevel(logging.INFO)
 
     fmt_shell = "%(asctime)s %(message)s"

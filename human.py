@@ -1,4 +1,4 @@
-from crowd_sim.envs.utils.agent import Agent
+from agent import Agent
 from crowd_sim.envs.utils.state import JointState
 
 
