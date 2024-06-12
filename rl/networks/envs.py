@@ -60,7 +60,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, config=None, envNu
             env,
             None,
             allow_early_resets=allow_early_resets)
-        logging.info('Create env: ' + env_id)
+        logging.debug('Create env: ' + env_id)
 
         if isinstance(env.observation_space, Box):
             if is_atari:

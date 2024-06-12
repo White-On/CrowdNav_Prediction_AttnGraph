@@ -26,7 +26,7 @@ from rl.networks.GAT import GAT
 class CryoShell(nn.Module):
     def __init__(self, vehicle_node_size, n_embd, n_feature_graph, n_head, n_layer, n_action):
         super().__init__()
-        logging.info(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
+        logging.debug(f'CryoShell init with vehicle_node_size: {vehicle_node_size}, n_embd: {n_embd}, n_feature_graph: {n_feature_graph}, n_head: {n_head}, n_layer: {n_layer}, n_action: {n_action}')
         self.vehicle_embedding = nn.Linear(vehicle_node_size, n_embd)
         # self.AttentionGraphLayer = nn.Sequential(*[GraphAttentionLayer(n_embd, n_embd, n_head, concat=True, dropout=dropout) for _ in range(n_layer)])
         self.AttentionGraphLayer = GAT(n_layer, [n_head]*n_layer, (torch.zeros(n_layer+1)+n_feature_graph).int().tolist())
@@ -40,9 +40,9 @@ class CryoShell(nn.Module):
         # graph: [batch_size, n_embd, n_embd]
 
         # vehicle_node: [batch_size, n_embd]
-        # logging.info(f'vehicle_node: {vehicle_node.shape}')
-        # logging.info(f'graph: {graph.shape}')
-        # logging.info(f'adj_mat: {adj_mat.shape}')
+        # logging.debug(f'vehicle_node: {vehicle_node.shape}')
+        # logging.debug(f'graph: {graph.shape}')
+        # logging.debug(f'adj_mat: {adj_mat.shape}')
 
         vehicle_node = self.vehicle_embedding(vehicle_node)
 

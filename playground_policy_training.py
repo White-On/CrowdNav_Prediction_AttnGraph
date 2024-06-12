@@ -7,9 +7,11 @@ from crowd_sim.envs import *
 from rl.networks.model import Policy
 from rl.networks.CRYOSHELL import CryoShell
 from torch.distributions.normal import Normal
+from torch.utils.tensorboard import SummaryWriter
 
 
 from rich import print
+import time
 import torch
 from rl import ppo
 from pathlib import Path
@@ -97,6 +99,8 @@ def main():
         logging.error('Failed to get Config function from ', model_dir, '/configs/config.py')
         from crowd_nav.configs.config import Config
     env_config = config = Config()
+
+    writer = SummaryWriter(f"{model_dir}/logs")
     
     arena_size = env_config.sim.arena_size
     arena_viz_factor = 2
@@ -112,7 +116,7 @@ def main():
     plt.show()
 
     seed = np.random.randint(0, 1000)
-    nb_enviroments = 1
+    nb_enviroments = 5
 
     # env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv(
@@ -122,8 +126,8 @@ def main():
     # logging.info(f"{env.envs[0].observation_space = }")
     env.reset()
 
-    num_steps = 200
-    num_updates = 1
+    num_steps = 100  
+    num_updates = 5
     log_file = 'env_experiment.log'
     save = False
     learning_rate = 1e-4
@@ -147,6 +151,7 @@ def main():
     delta_action_space = [env.envs[0].action_space.low[1], env.envs[0].action_space.high[1]]
 
     agent = Agent(env)
+    agent = torch.compile(agent)
     # logging.info(f"{agent.actor = }")
     optimizer = optim.Adam(agent.parameters(), lr=learning_rate, eps=1e-5)
     
@@ -158,6 +163,9 @@ def main():
     rewards = torch.zeros((num_steps, nb_enviroments))
     dones = torch.zeros((num_steps, nb_enviroments))
     values = torch.zeros((num_steps, nb_enviroments))
+
+    global_step = 0
+    start_time = time.time()
 
     next_obs = env.reset()
     next_obs_graph_features = next_obs['graph_features']
@@ -173,6 +181,7 @@ def main():
         # we step though the environment for num_steps steps
         # if the environment is done, we reset it and keep on exploring
         for step in range(num_steps):
+            global_step += 1 * nb_enviroments
             # we only render the environment for the first environment
             env.envs[0].render()
 
@@ -320,6 +329,22 @@ def main():
                 if approx_kl > target_kl:
                     break
             
+        
+        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
+        var_y = np.var(y_true)
+        explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+
+        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
+        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
+        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
+        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
+        writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
+        writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
+        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
+        writer.add_scalar("losses/explained_variance", explained_var, global_step)
+        print("SPS:", int(global_step / (time.time() - start_time)))
+        writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)    
+    
 
     plt.show()
     if save:

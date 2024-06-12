@@ -17,7 +17,7 @@ class GAT(torch.nn.Module):
     def __init__(self, num_of_layers, num_heads_per_layer, num_features_per_layer, add_skip_connection=False, bias=False,
                  dropout=0.6, log_attention_weights=False):
         super().__init__()
-        logging.info(f'GAT with num_of_layers: {num_of_layers}, num_heads_per_layer: {num_heads_per_layer}, num_features_per_layer: {num_features_per_layer}, add_skip_connection: {add_skip_connection}, bias: {bias}, dropout: {dropout}, log_attention_weights: {log_attention_weights}')
+        logging.debug(f'GAT with num_of_layers: {num_of_layers}, num_heads_per_layer: {num_heads_per_layer}, num_features_per_layer: {num_features_per_layer}, add_skip_connection: {add_skip_connection}, bias: {bias}, dropout: {dropout}, log_attention_weights: {log_attention_weights}')
         assert num_of_layers == len(num_heads_per_layer) == len(num_features_per_layer) - 1, f'Enter valid arch params.'
 
         num_heads_per_layer = [1] + num_heads_per_layer  # trick - so that I can nicely create GAT layers below
@@ -54,7 +54,7 @@ class GATLayer(torch.nn.Module):
     """
     def __init__(self, input_size, embed_size, num_head, concat=False, activation=None,
                  dropout_prob=0.6, add_skip_connection=False, bias=False, log_attention_weights=False):
-        logging.info(f'GAT Layer: input_size: {input_size}, embed_size: {embed_size}, num_head: {num_head}, concat: {concat}, activation: {activation}, dropout_prob: {dropout_prob}, add_skip_connection: {add_skip_connection}, bias: {bias}, log_attention_weights: {log_attention_weights}')
+        logging.debug(f'GAT Layer: input_size: {input_size}, embed_size: {embed_size}, num_head: {num_head}, concat: {concat}, activation: {activation}, dropout_prob: {dropout_prob}, add_skip_connection: {add_skip_connection}, bias: {bias}, log_attention_weights: {log_attention_weights}')
         super().__init__()
 
         self.num_attention_heads = num_head
@@ -132,6 +132,9 @@ class GATLayer(torch.nn.Module):
         attention_scores.masked_fill_(new_mask<0.1, -1e10)
 
         attention_probs = nn.Softmax(dim=-1)(attention_scores)  # [Batch_size x Num_of_heads x Seq_length x Seq_length]
+        
+        # attention_probs, _ = F.scaled_dot_product_attention(query_layer, key_layer, value_layer, attn_mask=new_mask)
+
         context_layer = torch.matmul(attention_probs,
                                      value_layer)  # [Batch_size x Num_of_heads x Seq_length x Head_size]
 
