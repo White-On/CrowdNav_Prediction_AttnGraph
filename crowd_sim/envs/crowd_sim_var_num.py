@@ -6,7 +6,7 @@ import copy
 from crowd_sim.envs.utils.action import ActionRot, ActionXY
 from crowd_sim.envs import *
 from crowd_sim.envs.utils.info import *
-from crowd_sim.envs.utils.human import Human
+from human import Human
 from crowd_sim.envs.utils.state import JointState
 
 
