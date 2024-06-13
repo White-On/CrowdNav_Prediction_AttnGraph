@@ -11,17 +11,15 @@ def main():
     nb_steps = 100
     human_radius = 0.2
 
+    debug = False
+
     for i in range(nb_humans):
         if i % 2 == 0:
             Human(delta_t, is_visible=True, radius=human_radius)
         else:
             Human(delta_t, is_visible=True, radius=human_radius)
     # set random position for each human
-    Human.apply(Human.set_random_position)
-    # set random goal for each human
-    Human.apply(Human.set_random_goal)
-    # set random speed for each human
-    Human.apply(Human.set_random_speed)
+    Human.apply(Human.reset)
 
     # render the humans
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -47,7 +45,7 @@ def main():
             action = human.predict_what_to_do(*other_agent_state)
             human.step(action)
             if human.is_goal_reached(0.1):
-                human.set_random_goal()
+                human.goal_coordinates = human.set_random_goal()
             
             # print(f'{human = }, {action = }')
 
@@ -61,10 +59,11 @@ def main():
         for human in Human.HUMAN_LIST:
             ax.plot(*human.goal_coordinates, 'bo')
             ax.plot(*human.coordinates, 'ro')
-            ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=human.speed[0], dy=human.speed[1], head_width=0.1, head_length=0.1, fc='k', ec='k')
-            velocity_toward_goal = np.array(human.goal_coordinates) - np.array(human.coordinates)
-            normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
-            ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc='b', ec='b')
+            if debug:
+                ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=human.speed[0], dy=human.speed[1], head_width=0.1, head_length=0.1, fc='k', ec='k')
+                velocity_toward_goal = np.array(human.goal_coordinates) - np.array(human.coordinates)
+                normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
+                ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc='b', ec='b')
         plt.pause(delta_t)
 
 

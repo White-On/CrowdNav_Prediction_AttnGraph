@@ -34,16 +34,16 @@ class Human(Agent):
 
     def set_random_position(self) -> None:
         position_limit = self.arena_size 
-        self.coordinates = [np.random.uniform(-position_limit, position_limit), 
+        return [np.random.uniform(-position_limit, position_limit), 
                            np.random.uniform(-position_limit, position_limit)]
     
     def set_random_speed(self) -> None:
-        self.speed = [np.random.uniform(-self.desired_speed, self.desired_speed), 
+        return [np.random.uniform(-self.desired_speed, self.desired_speed), 
                       np.random.uniform(-self.desired_speed, self.desired_speed)]
     
     def set_random_goal(self) -> None:
         goal_coordinate_limit = self.arena_size 
-        self.goal_coordinates = [np.random.uniform(-goal_coordinate_limit, goal_coordinate_limit), 
+        return [np.random.uniform(-goal_coordinate_limit, goal_coordinate_limit), 
                                  np.random.uniform(-goal_coordinate_limit, goal_coordinate_limit)]
         
 
@@ -53,7 +53,7 @@ class Human(Agent):
         """
         no_goal_set = self.goal_coordinates == [None, None]
         if no_goal_set:
-            self.set_random_goal()
+            self.goal_coordinates = self.set_random_goal()
 
         max_neighbors = len(other_agent_state)
         timehorizon = 5
@@ -94,3 +94,8 @@ class Human(Agent):
     
     def is_goal_reached(self, threashold) -> bool:
         return np.linalg.norm(np.array(self.coordinates) - np.array(self.goal_coordinates)) < threashold
+    
+    def reset(self) -> None:
+        self.coordinates = self.set_random_position()
+        self.speed = self.set_random_speed()
+        self.goal_coordinates = self.set_random_goal()

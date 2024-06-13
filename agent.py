@@ -29,16 +29,6 @@ class Agent(object):
         Agent.ENTITIES.append(self)
 
 
-        # TODO collect collection of goals from config file
-        # TODO Move all that in Robot class 
-        nb_goals = 5
-        self.collection_goal_coordinates = np.random.uniform(-self.arena_size, self.arena_size, (nb_goals, 2))
-        self.path = None
-        self.current_goal_cusor = 0
-        self.velocity_norm = 1.0
-        self.acceleration_limits = [0.5, 2.0]
-        self.robot_size = 0.3
-
     def __str__(self) -> str:
         return f"Agent: {self.__class__.__name__}"
     
@@ -61,36 +51,6 @@ class Agent(object):
         distance = np.linalg.norm(np.array(other_agent_position) - self.coordinates)
         return distance < self.sensor_range
 
-    # def set(self, px, py, gx, gy, vx, vy, theta, radius=None, v_pref=None):
-    #     self.px = px
-    #     self.py = py
-    #     self.gx = gx
-    #     self.gy = gy
-    #     self.vx = vx
-    #     self.vy = vy
-    #     self.theta = theta
-
-    #     if radius is not None:
-    #         self.radius = radius
-    #     if v_pref is not None:
-    #         self.v_pref = v_pref
-        
-    #     self.path = self.create_path()
-
-
-    # self.px, self.py, self.vx, self.vy, self.radius, self.gx, self.gy, self.v_pref, self.theta
-    # def set_list(self, px, py, vx, vy, radius, gx, gy, v_pref, theta):
-    #     self.px = px
-    #     self.py = py
-    #     self.gx = gx
-    #     self.gy = gy
-    #     self.vx = vx
-    #     self.vy = vy
-    #     self.theta = theta
-    #     self.radius = radius
-    #     self.v_pref = v_pref
-
-        # self.path = self.create_path()
 
     # def get_observable_state(self):
     #     return ObservableState(self.px, self.py, self.vx, self.vy, self.radius)
@@ -157,12 +117,12 @@ class Agent(object):
         return self.collection_goal_coordinates
 
 
-    def set_speed(self, speed: float):
+    def set_speed(self, speed: float) -> None:
         self.speed = speed
 
 
     @abc.abstractmethod
-    def act(self, observation) -> list:
+    def predict_what_to_do(self, *observations) -> list:
         """
         Compute state using received observation and pass it to policy
 
