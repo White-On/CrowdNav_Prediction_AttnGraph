@@ -133,7 +133,7 @@ def main():
     env.reset()
 
     num_steps = 200  
-    num_updates = 250
+    num_updates = 20
     log_file = 'env_experiment.log'
     save = False
     learning_rate = 1e-4
@@ -151,7 +151,7 @@ def main():
     target_kl = 0.01
     max_grad_norm = 0.5
     save_interval = 10
-    resume_agent_state = True
+    resume_agent_state = False
 
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
