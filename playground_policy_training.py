@@ -122,7 +122,7 @@ def main():
         plt.show()
 
     seed = np.random.randint(0, 1000)
-    nb_enviroments = 1
+    nb_enviroments = 5
 
     # env = make_env("CrowdSimCar-v0", seed, 1, "_", True,config=env_config, ax=ax)
     env = DummyVecEnv(
@@ -132,8 +132,8 @@ def main():
     # logging.info(f"{env.envs[0].observation_space = }")
     env.reset()
 
-    num_steps = 100  
-    num_updates = 1
+    num_steps = 200  
+    num_updates = 250
     log_file = 'env_experiment.log'
     save = False
     learning_rate = 1e-4
