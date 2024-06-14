@@ -150,6 +150,8 @@ def main():
     ent_coef = 0.01
     target_kl = 0.01
     max_grad_norm = 0.5
+    save_interval = 10
+    resume_agent_state = True
 
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
@@ -157,6 +159,13 @@ def main():
     delta_action_space = [env.envs[0].action_space.low[1], env.envs[0].action_space.high[1]]
 
     agent = Agent(env)
+
+    if resume_agent_state:
+        resume_agent_state_file = 'trained_models/env_experiment/checkpoints/Cryoshell_0.pt'
+        agent.actor.load_state_dict(torch.load(resume_agent_state_file))
+        logging.info(f"Loaded the following checkpoint {resume_agent_state_file}")
+
+
     agent = torch.compile(agent)
     # logging.info(f"{agent.actor = }")
     optimizer = optim.Adam(agent.parameters(), lr=learning_rate, eps=1e-5)
@@ -355,7 +364,17 @@ def main():
             writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
             writer.add_scalar("losses/explained_variance", explained_var, global_step)
             writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)    
-    
+
+        # save the model for every interval-th episode or for the last epoch
+        if (update % save_interval == 0 or update == num_updates - 1) :
+            save_path = Path(model_dir) / 'checkpoints'
+            checkpoint_name = f'_{update}_{time.strftime("%Y_%m_%d_%H_%M_%S")}'
+            # checkpoint_name = time.strftime('%Y%m%d_%H%M%S')
+
+            if not save_path.exists():
+                save_path.mkdir()
+            
+            torch.save(agent.actor.state_dict(), save_path / f'Cryoshell{checkpoint_name}.pt')
 
     plt.show()
     if save:
