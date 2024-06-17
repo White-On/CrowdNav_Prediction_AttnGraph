@@ -1,5 +1,6 @@
 from agent import Agent
 import numpy as np
+import logging
 
 
 class Robot(Agent):
@@ -15,6 +16,7 @@ class Robot(Agent):
         self.robot_size = 0.3
         self.orientation = 0
         self.theta = 0
+        self.nb_forseen_goal = nb_forseen_goal
 
     def __str__(self) -> str:
         return f'{super().__str__()}, {self.id = }'
@@ -39,11 +41,11 @@ class Robot(Agent):
     def create_path(self) -> list:
         # the path is just a collection of line segments between the goals and the initial position
         initial_position_robot = self.get_position()
-        goals_coordinates = self.get_agent_goal_collection()
+        goals_coordinates = self.collection_goal_coordinates
         no_initial_position = initial_position_robot == [None, None]
-        no_goals = goals_coordinates == [None, None]
+        no_goals = goals_coordinates == [None] * self.nb_goals
         if no_initial_position or no_goals:
-            print(f'Warning: {self.__class__.__name__} has no initial position or goals set!')
+            logging.warn(f'Warning: {self.__class__.__name__} has no initial position or goals set!')
             return None
         
         path_element = np.vstack((initial_position_robot, goals_coordinates))
@@ -76,27 +78,88 @@ class Robot(Agent):
     def reset(self) -> None:
         self.coordinates = self.set_random_position()
         self.speed = self.set_random_speed()
-        self.goal_coordinates = self.set_random_goal()
+        self.collection_goal_coordinates = self.set_random_goal()
         self.path = self.create_path()
         self.current_goal_cusor = 0
         self.velocity_norm = None
         self.orientation = np.random.uniform(0, 2*np.pi)
-
-    # TODO EN BAS ICI
     
     def predict_what_to_do(self, *other_agent_state:list) -> list:
-        return  
+        # TODO: add the NN here
+        # speed_action = np.random.uniform(0.2,1)
+        # theta_action = np.random.uniform(-np.pi/6, np.pi/6)
+        speed_action = 1
+        theta_action = self.get_angle_from_goal()
+        # theta_action = np.pi/6
+        # logging.info(theta_action)
+        return [speed_action, theta_action]
     
-    def get_current_goal(self):
-        # TODO add to reach more than one goal in the future
-        if self.current_goal_cusor >= len(self.collection_goal_coordinates):
+    def get_current_visible_goal(self):
+        goal_cursor_too_far = self.current_goal_cusor >= len(self.collection_goal_coordinates)
+        if goal_cursor_too_far:
             return None
-        else:
-            return self.collection_goal_coordinates[self.current_goal_cusor]
+        return self.collection_goal_coordinates[self.current_goal_cusor: self.current_goal_cusor + self.nb_forseen_goal]
 
     def next_goal(self):   
         self.current_goal_cusor += 1
 
     def is_goal_reached(self, threashold) -> bool:
-        current_goal = self.get_current_goal()
-        return np.linalg.norm(np.array(self.coordinates) - np.array(self.goal_coordinates)) < threashold
+        current_goal = self.get_current_visible_goal()
+        if current_goal is None:
+            logging.info(f'all goals have been resolved')
+        current_goal = current_goal[0]
+        return np.linalg.norm(np.array(self.coordinates) - np.array(current_goal)) < threashold
+    
+    def step(self, action: list) -> None:
+        '''Action is a list with the speed vector norm and wheel orientation theta'''
+        desired_speed, desired_theta = action
+        self.theta = self.limit_theta_change(desired_theta)
+        self.velocity_norm = self.limit_velocity_norm_change(desired_speed)
+        self.orientation += self.compute_orientation()
+        self.coordinates = self.compute_position()
+        # we need to compute the speed vector somewhere
+
+    def limit_theta_change(self,desired_theta:float)-> float:
+        # TODO add the limit of change in theta
+        # clip the value of theta between 50% of the current theta value
+        # and adjust that % with the rotation speed
+        return np.clip(desired_theta,-np.pi/6, np.pi/6)
+
+    def limit_velocity_norm_change(self, desired_velocity_norm:float)->float:
+        # same comment as the previous method
+        return desired_velocity_norm
+    
+    def compute_orientation(self)-> float:
+        # TODO maybe limit the change speed of the orientation too ? 
+        orientation = (self.velocity_norm / self.robot_size) * np.tan(self.theta) * self.delta_t
+        return orientation
+
+    
+    def compute_position(self) -> list:
+        # TODO add the limit of change in speed
+        x = self.velocity_norm * np.cos(self.orientation) * self.delta_t + self.coordinates[0]
+        y = self.velocity_norm * np.sin(self.orientation) * self.delta_t + self.coordinates[1]  
+        return [x, y]
+        
+        # self.x += v * np.cos(self.theta) * dt
+        # self.y += v * np.sin(self.theta) * dt
+        # self.theta += (v / self.L) * np.tan(delta) * dt
+    
+    def get_angle_from_goal(self)->float:
+        goal_coordinate = self.get_current_visible_goal()
+        if goal_coordinate is None:
+            return 0.0
+        else:
+            goal_coordinate = goal_coordinate[0]
+        orientation = self.orientation % (2 * np.pi)
+        goal_x, goal_y = goal_coordinate
+        # Calculate the angle to the goal
+        desired_angle = np.arctan2(goal_y - self.coordinates[1], goal_x - self.coordinates[0])
+
+        # Calculate the angle error
+        angle_error = desired_angle - orientation
+
+        # Normalize the angle error to the range [-pi, pi]
+        angle_error = (angle_error + np.pi) % (2 * np.pi) - np.pi
+
+        return angle_error
