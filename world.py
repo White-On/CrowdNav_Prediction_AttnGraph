@@ -88,11 +88,18 @@ def main():
                 normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
                 ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc='b', ec='b')
         
-        ax.plot(*robot.get_current_visible_goal()[0], 'ko',markersize=10)
+        render_robot_goal(ax, *robot.collection_goal_coordinates, current_goal=robot.get_current_visible_goal()[0])
         ax.plot(*robot.coordinates, 'go', markersize=10)
         
         plt.pause(0.01)
 
+def render_robot_goal(ax, *goal_coordinates, current_goal=None):
+    for goal in goal_coordinates:
+        ax.plot(*goal, 'bo')
+    for i in range(len(goal_coordinates)-1):
+        ax.plot([goal_coordinates[i][0], goal_coordinates[i+1][0]], [goal_coordinates[i][1], goal_coordinates[i+1][1]], 'b--')
+    if current_goal:
+        ax.plot(*current_goal, 'ro', markersize=10)
 
 
 if __name__ == '__main__':
