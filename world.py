@@ -15,7 +15,7 @@ def main():
     human_radius = 0.2
     robot_radius = human_radius
 
-    debug = False
+    debug = True
 
     for i in range(nb_humans):
         if i % 2 == 0:
@@ -25,7 +25,7 @@ def main():
     # set random position for each human
     Human.apply(Human.reset)
 
-    robot = Robot(delta_t, radius=robot_radius)
+    robot = Robot(delta_t, radius=robot_radius, is_visible=True)
     robot.reset()
 
     # render the humans
@@ -57,8 +57,8 @@ def main():
             # print(f'{human = }, {action = }')
 
         other_agent_state = (agent_visible
-                                 .filter(lambda x: x.id != human.id)
-                                 .filter(human.can_i_see)
+                                 .filter(lambda x: x.id != robot.id)
+                                 .filter(robot.can_i_see)
                                  .apply(lambda x: x.coordinates + x.speed))
         # predict what to do
         is_robot_reach_goal = robot.is_goal_reached(0.1)
@@ -67,7 +67,7 @@ def main():
         all_goals_reached = robot.current_goal_cusor >= len(robot.collection_goal_coordinates)
         if all_goals_reached:
             logging.info('All goals are reached!')
-            break
+            all_agent.reset()
         action = robot.predict_what_to_do(*other_agent_state)
         robot.step(action)
 
@@ -90,6 +90,11 @@ def main():
         
         render_robot_goal(ax, *robot.collection_goal_coordinates, current_goal=robot.get_current_visible_goal()[0])
         ax.plot(*robot.coordinates, 'go', markersize=10)
+        if debug:
+            ax.arrow(x=robot.coordinates[0], y=robot.coordinates[1], dx=robot.speed[0], dy=robot.speed[1], head_width=0.1, head_length=0.1, fc='k', ec='k')
+            velocity_toward_goal = np.array(robot.get_current_visible_goal()[0]) - np.array(robot.coordinates)
+            normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
+            ax.arrow(x=robot.coordinates[0], y=robot.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc='b', ec='b')
         
         plt.pause(0.01)
 

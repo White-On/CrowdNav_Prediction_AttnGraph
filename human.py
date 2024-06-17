@@ -50,6 +50,9 @@ class Human(Agent):
     def predict_what_to_do(self, *other_agent_state:list) -> list:
         """
         other_agent_state: list of other agents' states in the form of [x, y, vx, vy]
+        We run a RVO2 simulation to predict the next action to take.
+        TODO : maybe use something else to predict the next action to take 
+        beceause creating a new simulation for each agent is not efficient.
         """
         no_goal_set = self.goal_coordinates == [None, None]
         if no_goal_set:
@@ -83,7 +86,6 @@ class Human(Agent):
             simulation.addAgent((state[0], state[1]), *params, self.radius + safe_distance, self.desired_speed, (state[2], state[3]))
 
         # Set the preferred velocity to be a vector of magnitude x in the direction of the goal.
-    
         simulation.setAgentPrefVelocity(0, tuple(speed_to_take))
         for i in range(len(other_agent_state)):
             simulation.setAgentPrefVelocity(i + 1, (0, 0))

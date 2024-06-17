@@ -117,6 +117,7 @@ class Robot(Agent):
         self.velocity_norm = self.limit_velocity_norm_change(desired_speed)
         self.orientation += self.compute_orientation()
         self.coordinates = self.compute_position()
+        self.speed = self.compute_speed_vector()
         # we need to compute the speed vector somewhere
 
     def limit_theta_change(self,desired_theta:float)-> float:
@@ -134,7 +135,6 @@ class Robot(Agent):
         orientation = (self.velocity_norm / self.robot_size) * np.tan(self.theta) * self.delta_t
         return orientation
 
-    
     def compute_position(self) -> list:
         # TODO add the limit of change in speed
         x = self.velocity_norm * np.cos(self.orientation) * self.delta_t + self.coordinates[0]
@@ -144,6 +144,11 @@ class Robot(Agent):
         # self.x += v * np.cos(self.theta) * dt
         # self.y += v * np.sin(self.theta) * dt
         # self.theta += (v / self.L) * np.tan(delta) * dt
+
+    def compute_speed_vector(self) -> list:
+        v_x = self.velocity_norm * np.cos(self.orientation)
+        v_y = self.velocity_norm * np.sin(self.orientation)
+        return [v_x, v_y]
     
     def get_angle_from_goal(self)->float:
         goal_coordinate = self.get_current_visible_goal()
@@ -163,3 +168,16 @@ class Robot(Agent):
         angle_error = (angle_error + np.pi) % (2 * np.pi) - np.pi
 
         return angle_error
+    
+    def get_robot_state(self)->list:
+        """
+        The state of the robot is the concatenation of the robot's velocity norm,
+        the robot's orientation and the relative goal coordinates. Number of goals
+        to consider is defined by the attribute nb_forseen_goal
+        """
+        relative_goal_coordinates = self.get_current_visible_goal() - self.coordinates
+        reaching_end_path = len(relative_goal_coordinates) < self.nb_forseen_goal
+        if reaching_end_path:
+            # we add zeros to the relative goal coordinates to have a fixed size
+            relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.zeros((self.nb_forseen_goal - len(relative_goal_coordinates), 2))))     
+        return self.velocity_norm + self.theta + relative_goal_coordinates
