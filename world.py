@@ -56,10 +56,6 @@ def main():
             
             # print(f'{human = }, {action = }')
 
-        other_agent_state = (agent_visible
-                                 .filter(lambda x: x.id != robot.id)
-                                 .filter(robot.can_i_see)
-                                 .apply(lambda x: x.coordinates + x.speed))
         # predict what to do
         is_robot_reach_goal = robot.is_goal_reached(0.1)
         if is_robot_reach_goal:
@@ -68,7 +64,7 @@ def main():
         if all_goals_reached:
             logging.info('All goals are reached!')
             all_agent.reset()
-        action = robot.predict_what_to_do(*other_agent_state)
+        action = robot.predict_what_to_do()
         robot.step(action)
 
         # print(Human.apply(lambda x: x.goal_coordinates))

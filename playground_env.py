@@ -26,11 +26,7 @@ def main():
         env.reset()
         for step in range(num_steps):
             agent_visible = env.all_agent_group.filter(lambda x: x.is_visible)
-            other_agent_state = (agent_visible
-                                 .filter(lambda x: x.id != env.robot.id)
-                                 .filter(env.robot.can_i_see)
-                                 .apply(lambda x: x.coordinates + x.speed))
-            action = env.robot.predict_what_to_do(*other_agent_state)
+            action = env.robot.predict_what_to_do()
             obs, reward, done, info = env.step(action)
 
             
