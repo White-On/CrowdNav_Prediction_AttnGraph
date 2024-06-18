@@ -11,7 +11,6 @@ import matplotlib.patches as patches
 
 from rich import print
 
-
 class CrowdSimCar(gym.Env):
     '''
     Same as CrowdSimPred, except that
