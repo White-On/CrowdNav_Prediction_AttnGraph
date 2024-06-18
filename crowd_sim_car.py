@@ -7,6 +7,7 @@ from robot import Robot
 from agent import Agent, AgentGroup
 import logging
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from rich import print
 
@@ -360,7 +361,8 @@ class CrowdSimCar(gym.Env):
 
 
         # add robot
-        ax.plot(*self.robot.get_position(), color=robot_color, marker='o', markersize=robot_visual_radius, label='Robot')
+        # ax.plot(*self.robot.get_position(), color=robot_color, marker='o', markersize=robot_visual_radius, label='Robot')
+        ax.add_artist(patches.Rectangle((robotX - robot_radius, robotY - robot_radius), 3 * robot_radius, 2*robot_radius, color=robot_color, linewidth=0.5, angle=np.degrees(self.robot.orientation), rotation_point=(robotX, robotY)))
         # direction and goal arrow
         if mode == 'debug':
             ax.arrow(x=self.robot.coordinates[0], y=self.robot.coordinates[1], dx=self.robot.speed[0], dy=self.robot.speed[1], head_width=0.1, head_length=0.1, fc=direction_arrow_color, ec=direction_arrow_color)
