@@ -11,6 +11,8 @@ from arguments import get_args
 from ppo import PPO
 from network import FeedForwardNN
 from eval_policy import eval_policy
+from gym_file.envs.crowd_sim_car import CrowdSimCar
+from gym_file.envs.crowd_sim_car import CrowdSimCarSimpleObs
 
 def train(env, hyperparameters, actor_model, critic_model):
 	"""
@@ -108,7 +110,8 @@ def main(args):
 	# Creates the environment we'll be running. If you want to replace with your own
 	# custom environment, note that it must inherit Gym and have both continuous
 	# observation and action spaces.
-	env = gym.make('Pendulum-v0')
+	gym.logger.set_level(40)
+	env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=400, nb_pedestrians=20)
 
 	# Train or test, depending on the mode specified
 	if args.mode == 'train':
