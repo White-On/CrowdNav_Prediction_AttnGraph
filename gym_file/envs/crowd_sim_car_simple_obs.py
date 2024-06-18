@@ -19,7 +19,7 @@ class CrowdSimCarSimpleObs(gym.Env):
     '''
     metadata = {"render_modes": ["human","debug", None]}
                 
-    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=True):
+    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=False):
         self.arena_size = arena_size
         if render_mode not in self.metadata['render_modes']:
             logging.error(f"Mode {render_mode} is not supported")
@@ -58,26 +58,20 @@ class CrowdSimCarSimpleObs(gym.Env):
         self.all_agent_group = AgentGroup(*Agent.ENTITIES)
 
 
-    def define_observations_space(self, forseen_index:int, nb_humans:int,nb_graph_feature:int)->gym.spaces.Dict:
-        observation_space = {}
+    def define_observations_space(self, forseen_index:int, nb_humans:int,nb_graph_feature:int)->gym.spaces.Box:
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
         vehicle_speed_boundries = [-0.5, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
         objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
         all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
-        observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
-        
+
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2*(nb_graph_feature))
 
-        observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(nb_humans, spatial_edge_dim), dtype=np.float32)
-        
-        observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(nb_humans,),
-                                            dtype=np.bool8)
-            
-        return gym.spaces.Dict(observation_space)
+        robot_node_shape = all_boundries.flatten().shape[0]
+        graph_feature_shape = nb_humans * spatial_edge_dim
+
+        return gym.spaces.Box(low=-np.inf, high=np.inf,shape=(robot_node_shape + graph_feature_shape,), dtype=np.float32)
     
     def define_action_space(self)->gym.spaces.Box:
         vehicle_speed_boundries = [-0.5, 2]
@@ -203,8 +197,8 @@ class CrowdSimCarSimpleObs(gym.Env):
         list_of_visible_humans = visible_agent_by_robot.apply(lambda x: x.id)
         visibility_mask = [True if human.id in list_of_visible_humans else False for human in Human.HUMAN_LIST]
         observation['visible_masks'] = visibility_mask
-
-        return observation
+        flatten_observation = np.concatenate((observation['robot_node'].flatten(),observation['graph_features'].flatten()), axis=None)
+        return flatten_observation
     
     
     def compute_collision_reward(self, distance_from_human:float)->float:

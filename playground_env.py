@@ -1,4 +1,5 @@
 from gym_file.envs.crowd_sim_car import CrowdSimCar
+from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 from logger import logging_setup
 
 from rich import print
@@ -18,7 +19,7 @@ def main():
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-    env = gym.make('CrowdSimCar-v0', render_mode='human', episode_time=num_steps, nb_pedestrians=20)
+    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=20)
 
     save = False
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
@@ -26,7 +27,6 @@ def main():
     for episode in range(num_episodes):
         env.reset()
         for step in range(num_steps):
-            agent_visible = env.all_agent_group.filter(lambda x: x.is_visible)
             action = env.robot.predict_what_to_do()
             obs, reward, done, info = env.step(action)
 
