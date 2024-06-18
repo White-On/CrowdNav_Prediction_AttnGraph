@@ -20,7 +20,7 @@ def main():
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-
+    logging.info(f'{env.observation_space.shape[0]}')
     save = False
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
@@ -31,7 +31,7 @@ def main():
             obs, reward, done, info = env.step(action)
 
             
-            # logging.info(f"{obs = }")
+            logging.info(f"{obs.shape = }")
             logging.info(f'Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}')
             if done:
                 logging.info(f'Episode {episode+1} finished at step {step+1}, status: {info}')

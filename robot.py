@@ -179,5 +179,6 @@ class Robot(Agent):
         reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
         if reaching_end_path:
             # we add zeros to the relative goal coordinates to have a fixed size
+            # TODO maybe change zeros by infinity
             relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.zeros((self.nb_forseen_goal - len(relative_goal_coordinates), 2))))     
-        return self.velocity_norm + self.theta + relative_goal_coordinates.tolist()
+        return np.concatenate((self.velocity_norm, self.theta, relative_goal_coordinates),axis=None).tolist()

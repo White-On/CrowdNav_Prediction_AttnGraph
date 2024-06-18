@@ -47,7 +47,7 @@ class CrowdSimCarSimpleObs(gym.Env):
         self.goal_threshold_distance = 0.1
 
         sensor_range = 4
-        self.robot = Robot(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
+        self.robot = Robot(self.time_step, arena_size=arena_size, sensor_range=sensor_range,nb_forseen_goal=self.nb_time_steps_seen_as_graph_feature)
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 
@@ -62,13 +62,13 @@ class CrowdSimCarSimpleObs(gym.Env):
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
         vehicle_speed_boundries = [-0.5, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
-        objectives_boundries = np.full((forseen_index * 2, 2), [-10,10])
+        objectives_boundries = np.full((forseen_index, 2), [-10,10])
         all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
 
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2*(nb_graph_feature))
 
-        robot_node_shape = all_boundries.flatten().shape[0]
+        robot_node_shape = 1 + 1 + forseen_index * 2
         graph_feature_shape = nb_humans * spatial_edge_dim
 
         return gym.spaces.Box(low=-np.inf, high=np.inf,shape=(robot_node_shape + graph_feature_shape,), dtype=np.float32)
@@ -429,3 +429,6 @@ class CrowdSimCarSimpleObs(gym.Env):
             plt.pause(self.render_delay)
         else:
             plt.pause(0.0001)
+
+    def render(self, mode='human'):
+        self._render_frame(mode)

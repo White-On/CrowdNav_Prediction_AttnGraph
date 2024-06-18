@@ -12,7 +12,7 @@ from ppo import PPO
 from network import FeedForwardNN
 from eval_policy import eval_policy
 from gym_file.envs.crowd_sim_car import CrowdSimCar
-from gym_file.envs.crowd_sim_car import CrowdSimCarSimpleObs
+from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 
 def train(env, hyperparameters, actor_model, critic_model):
 	"""
