@@ -62,7 +62,7 @@ class Robot(Agent):
     def get_distance_from_path(self):
         position = self.get_position()
         idx = self.current_goal_cusor
-        path = self.path[idx].reshape(2,2)
+        path = np.array(self.path[idx]).reshape(2,2)
 
         if np.array_equal(position, path[0]):
             return 0.0
@@ -81,7 +81,7 @@ class Robot(Agent):
         self.collection_goal_coordinates = self.set_random_goal()
         self.path = self.create_path()
         self.current_goal_cusor = 0
-        self.velocity_norm = None
+        self.velocity_norm = np.linalg.norm(self.speed)
         self.orientation = np.random.uniform(0, 2*np.pi)
     
     def predict_what_to_do(self, *other_agent_state:list) -> list:
@@ -175,9 +175,9 @@ class Robot(Agent):
         the robot's orientation and the relative goal coordinates. Number of goals
         to consider is defined by the attribute nb_forseen_goal
         """
-        relative_goal_coordinates = self.get_current_visible_goal() - self.coordinates
-        reaching_end_path = len(relative_goal_coordinates) < self.nb_forseen_goal
+        relative_goal_coordinates = np.array(self.get_current_visible_goal()) - np.array(self.coordinates)
+        reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
         if reaching_end_path:
             # we add zeros to the relative goal coordinates to have a fixed size
             relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.zeros((self.nb_forseen_goal - len(relative_goal_coordinates), 2))))     
-        return self.velocity_norm + self.theta + relative_goal_coordinates
+        return self.velocity_norm + self.theta + relative_goal_coordinates.tolist()

@@ -6,7 +6,6 @@ from human import Human
 from robot import Robot
 from agent import Agent, AgentGroup
 import logging
-from logger import logging_setup
 import matplotlib.pyplot as plt
 
 from rich import print
@@ -18,18 +17,15 @@ class CrowdSimCar(gym.Env):
     The future human traj in 'spatial_edges' are dummy placeholders
     and will be replaced by the outputs of a real GST pred model in the wrapper function in vec_pretext_normalize.py
     '''
-    metadata = {"render_modes": ["human","debug"]}
+    metadata = {"render_modes": ["human","debug", None]}
                 
-    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10):
-        # logger
-        logging_setup('world_logs.log')
-
+    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=True):
         self.arena_size = arena_size
-        if render_mode not in self.metadata['render_modes'] or render_mode is not None:
+        if render_mode not in self.metadata['render_modes']:
             logging.error(f"Mode {render_mode} is not supported")
             raise NotImplementedError
         else:
-            _, ax = plt.subplots(figsize=(10, 10))
+            fig, ax = plt.subplots(figsize=(6, 6))
             ax.set_xlim(-arena_size, arena_size)
             ax.set_ylim(-arena_size, arena_size)
             ax.axes.xaxis.set_visible(False)
@@ -37,17 +33,23 @@ class CrowdSimCar(gym.Env):
             plt.ion()
             plt.show()
             self.render_axis = ax
-            self.render_delay = 0.01
+            # self.render_delay = 1.0
+            self.render_delay = None
+            self.display_future_trajectory = display_future_trajectory
+
         self.render_mode = render_mode
         self.window = None
         self.clock = None
 
-        delta_t = 0.1
+        self.episode_time = episode_time
+        self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.goal_threshold_distance = 0.1
-        self.robot = Robot(delta_t, arena_size=arena_size)
+
+        sensor_range = 4
+        self.robot = Robot(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
         for _ in range(nb_pedestrians):
-            Human(delta_t, arena_size=arena_size)
+            Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 
         self.observation_space = self.define_observations_space(self.robot.nb_forseen_goal, 
                                                                 nb_humans=nb_pedestrians, 
@@ -69,11 +71,11 @@ class CrowdSimCar(gym.Env):
         spatial_edge_dim = int(2*(nb_graph_feature))
 
         observation_space['graph_features'] = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                            shape=(nb_humans + 1, spatial_edge_dim), dtype=np.float32)
+                                            shape=(nb_humans, spatial_edge_dim), dtype=np.float32)
         
         observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
                                             shape=(nb_humans,),
-                                            dtype=np.bool)
+                                            dtype=np.bool8)
             
         return gym.spaces.Dict(observation_space)
     
@@ -136,11 +138,13 @@ class CrowdSimCar(gym.Env):
         #     logging.info('All robot goals are reached!')
         #     self.all_agent_group.reset()
 
-        self.global_time += self.time_step # max episode length=time_limit/time_step
-        self.step_counter = self.step_counter+1
+        self.global_time += self.time_step
 
         # compute the observation
         step_observation = self.generate_observation()
+
+        if self.render_mode is not None:
+            self._render_frame(mode = self.render_mode)
 
         return step_observation, reward, done, episode_info
 
@@ -166,7 +170,7 @@ class CrowdSimCar(gym.Env):
         
         # graph features: future position of every human + robot 
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
-        observation['graph_features'] = np.zeros((nb_humans_in_simulation + 1, (self.nb_time_steps_seen_as_graph_feature), 2))
+        observation['graph_features'] = np.zeros((nb_humans_in_simulation, (self.nb_time_steps_seen_as_graph_feature), 2))
         # logging.info(f"graph_features: {observation['graph_features'].shape}")
 
         visible_agent_by_robot = (agent_visible
@@ -176,6 +180,7 @@ class CrowdSimCar(gym.Env):
         for i, human in enumerate(Human.HUMAN_LIST):            
             if human.id in visible_agent_by_robot.apply(lambda x: x.id):
                 direction_vector = np.array(human.speed)
+                direction_vector *= self.time_step
                 # with the vector we calculate the n future positions
                 human_position = np.array(human.get_position())
                 direction_vector = np.tile(direction_vector, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
@@ -190,20 +195,20 @@ class CrowdSimCar(gym.Env):
         # does not make sense
         robot_position = np.array(self.robot.get_position())
         # add robot future traj
-        robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
-        observation['graph_features'][-1] = robot_future_traj
+        # robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
+        # observation['graph_features'][-1] = robot_future_traj
         observation['graph_features'] = observation['graph_features'] - robot_position
-        observation['graph_features'] = observation['graph_features'].reshape(nb_humans_in_simulation + 1, -1)
+        observation['graph_features'] = observation['graph_features'].reshape(nb_humans_in_simulation, -1)
 
         list_of_visible_humans = visible_agent_by_robot.apply(lambda x: x.id)
-        visibility_mask = [True if i in list_of_visible_humans else False for i in range(nb_humans_in_simulation)]
+        visibility_mask = [True if human.id in list_of_visible_humans else False for human in Human.HUMAN_LIST]
         observation['visible_masks'] = visibility_mask
 
         return observation
     
     
     def compute_collision_reward(self, distance_from_human:float)->float:
-        distance_limit = 1
+        distance_limit = self.robot.radius + Human.HUMAN_LIST[0].radius
 
         collision_happed = np.min(distance_from_human) < distance_limit
 
@@ -254,7 +259,7 @@ class CrowdSimCar(gym.Env):
         angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 
         # TODO Je pense que ca ne vas pas fonctionner ici
-        current_goal_coordinates = self.robot.get_current_goal()
+        current_goal_coordinates = self.robot.get_current_visible_goal()[0]
         distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
@@ -263,14 +268,16 @@ class CrowdSimCar(gym.Env):
 
         # print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
 
-        episode_timeout = self.global_time >= self.time_limit - 1
+        episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
         # TODO check if we are at the last goal and close enough to it
         reward_all_goals_reached = 50
+        reward_single_goal_reached = 10
 
         # print(f'🎯 distance_from_goal: {distance_from_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:
+            reward += reward_single_goal_reached
             self.robot.next_goal()
         all_goals_reached = self.robot.current_goal_cusor >= len(self.robot.collection_goal_coordinates)
         if all_goals_reached:
@@ -290,7 +297,7 @@ class CrowdSimCar(gym.Env):
         for condition, result in conditions.items():
             if condition:
                 done = True
-                episode_info = result()
+                episode_info = result
                 break
         else:
             done = False
@@ -302,20 +309,18 @@ class CrowdSimCar(gym.Env):
     def _render_frame(self, mode='human')->None:
         """
         render function
-        use talk2env to plot the predicted future traj of humans
         """
-        import matplotlib.pyplot as plt
-        import matplotlib.lines as mlines
-        from matplotlib import patches
-
-        plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
+        # plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
 
         robot_color = 'gold'
-        human_color = 'red'
-        robot_goal_color = 'blue'
-        human_goal_color = 'green'
+        human_color = 'gray'
+        visible_human_color = 'blue'
+        robot_goal_color = 'green'
+        human_goal_color = 'lightblue'
         direction_arrow_color = 'black'
         color_robot_path = robot_goal_color
+        robot_visual_radius = 10
+        human_visual_radius = 6
 
         def calcFOVLineEndPoint(ang, point, extendFactor):
             # choose the extendFactor big enough
@@ -330,9 +335,10 @@ class CrowdSimCar(gym.Env):
             newPoint = [extendFactor * newPoint[0, 0], extendFactor * newPoint[1, 0], 1]
             return newPoint
 
-
-
         ax=self.render_axis
+        ax.clear()
+        ax.set_xlim(-self.arena_size, self.arena_size)
+        ax.set_ylim(-self.arena_size, self.arena_size)
 
         robotX, robotY = self.robot.coordinates
         robot_radius = self.robot.radius
@@ -340,20 +346,21 @@ class CrowdSimCar(gym.Env):
         # add list of goals
         for idx, goal in enumerate(self.robot.collection_goal_coordinates):
             color = robot_goal_color
+            markersize_goal = 10
             if idx == self.robot.current_goal_cusor:
                 color = 'r'
-            ax.plot(goal[0], goal[1], color=color, marker='p', linestyle='None', markersize=15, label='Goal')
-            offset_txt = 0.1
-            plt.text(goal[0]-offset_txt, goal[1]-offset_txt, idx, color='black', fontsize=12)
+            ax.plot(goal[0], goal[1], color=color, marker='p', markersize=markersize_goal, label='Goal')
+            offset_txt = 0.05
+            plt.text(goal[0]-offset_txt, goal[1]-offset_txt, idx, color='black', fontsize=markersize_goal-1)
         
         # add line for the path between goals
         if len(self.robot.path) > 0:
-            for i in range(len(self.robot.path)):
-                ax.plot(self.robot.path[i][0], self.robot.path[i][1], color=color_robot_path, linestyle='--')
+            for path in self.robot.path:
+                ax.plot([path[0], path[2]], [path[1], path[3]], color=color_robot_path, linestyle='--')
 
 
         # add robot
-        ax.plot(*self.robot.get_position(), color=robot_color, marker='o', linestyle='None', markersize=self.robot.radius, label='Robot')
+        ax.plot(*self.robot.get_position(), color=robot_color, marker='o', markersize=robot_visual_radius, label='Robot')
         # direction and goal arrow
         if mode == 'debug':
             ax.arrow(x=self.robot.coordinates[0], y=self.robot.coordinates[1], dx=self.robot.speed[0], dy=self.robot.speed[1], head_width=0.1, head_length=0.1, fc=direction_arrow_color, ec=direction_arrow_color)
@@ -361,28 +368,39 @@ class CrowdSimCar(gym.Env):
             normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
             ax.arrow(x=self.robot.coordinates[0], y=self.robot.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc=robot_goal_color, ec=robot_goal_color)
         
-        # compute orientation in each step and add arrow to show the direction
-
-
         # draw FOV for the robot
         # TODO if the robot has a FOV diff than 360
 
         # add an arc of robot's sensor range
         ax.add_artist(plt.Circle((robotX, robotY), self.robot.sensor_range, fill=False, color='black', linestyle='--', linewidth=0.5))
 
+        id_visible_agent_by_robot = (self.all_agent_group.filter(lambda x: x.id != self.robot.id)
+                                    .filter(self.robot.can_i_see)
+                                    .apply(lambda x: x.id))
         # add human
         for human in Human.HUMAN_LIST:
-            ax.plot(*human.get_position(), color=human_color, marker='o', linestyle='None', markersize=human.radius, label='Human')
+            color = human_color
+            if human.id in id_visible_agent_by_robot:
+                color = visible_human_color
+            ax.plot(*human.get_position(), color=color, marker='o', markersize=human_visual_radius, label='Human')
             if mode == 'debug':
-                ax.plot(*human.goal_coordinates, color=human_goal_color, marker='o', linestyle='None', label='Human Goal')
+                ax.plot(*human.goal_coordinates, color=human_goal_color, marker='o', label='Human Goal')
                 ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=human.speed[0], dy=human.speed[1], head_width=0.1, head_length=0.1, fc=direction_arrow_color, ec=direction_arrow_color)
                 velocity_toward_goal = np.array(human.goal_coordinates) - np.array(human.coordinates)
                 normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
                 ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=normalized_velocity[0], dy=normalized_velocity[1], head_width=0.1, head_length=0.1, fc=human_goal_color, ec=human_goal_color)
 
-        # hardcoded for now
-        # actual_arena_size = self.arena_size + 0.5
-
+        if self.display_future_trajectory:
+            observation = self.generate_observation()
+            predicted_positions = observation['graph_features']
+            visible_masks = observation['visible_masks']
+            # we remove the predicted positions with the visibility mask
+            predicted_positions = predicted_positions[visible_masks]
+            for human_future_traj in predicted_positions:
+                human_future_traj = human_future_traj.reshape(-1, 2)
+                human_future_traj = human_future_traj + np.array([robotX, robotY])
+                ax.plot(human_future_traj[:, 0], human_future_traj[:, 1], color='tab:orange', marker='o', markersize=human_visual_radius, label='Human Future Traj', alpha=0.5, linestyle='--')
+        
         # # plot the current human states
         # for i in range(len(self.humans)):
         #     ax.add_artist(human_circles[i])
@@ -412,5 +430,7 @@ class CrowdSimCar(gym.Env):
         #                 #                     self.humans[i].radius, fill=False)
         #                 ax.add_artist(circle)
         #                 artists.append(circle)
-
-        plt.pause(self.render_delay)
+        if self.render_delay:
+            plt.pause(self.render_delay)
+        else:
+            plt.pause(0.0001)
