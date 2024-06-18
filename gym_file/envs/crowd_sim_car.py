@@ -80,7 +80,9 @@ class CrowdSimCar(gym.Env):
         return gym.spaces.Dict(observation_space)
     
     def define_action_space(self)->gym.spaces.Box:
-        vehicle_speed_boundries = [-0.5, 2]
+        # vehicle_speed_boundries = [-0.5, 2]
+        # TODO put back the ability to drive backward
+        vehicle_speed_boundries = [0.0, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
 
         action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))

@@ -60,11 +60,6 @@ class CrowdSimCarSimpleObs(gym.Env):
 
     def define_observations_space(self, forseen_index:int, nb_humans:int,nb_graph_feature:int)->gym.spaces.Box:
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
-        vehicle_speed_boundries = [-0.5, 2]
-        vehicle_angle_boundries = [-np.pi/6, np.pi/6]
-        objectives_boundries = np.full((forseen_index, 2), [-10,10])
-        all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
-
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2*(nb_graph_feature))
 
@@ -74,7 +69,9 @@ class CrowdSimCarSimpleObs(gym.Env):
         return gym.spaces.Box(low=-np.inf, high=np.inf,shape=(robot_node_shape + graph_feature_shape,), dtype=np.float32)
     
     def define_action_space(self)->gym.spaces.Box:
-        vehicle_speed_boundries = [-0.5, 2]
+        # vehicle_speed_boundries = [-0.5, 2]
+        # TODO put back the ability to drive backward
+        vehicle_speed_boundries = [0.0, 2]
         vehicle_angle_boundries = [-np.pi/6, np.pi/6]
 
         action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))
