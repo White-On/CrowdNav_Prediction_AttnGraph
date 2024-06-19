@@ -152,16 +152,6 @@ class CrowdSimCar(gym.Env):
 
         return step_observation, reward, done, episode_info
 
-    # def talk2Env(self, data):
-    #     """
-    #     Call this function when you want extra information to send to/recv from the env
-    #     :param data: data that is sent from gst_predictor network to the env, it has 2 parts:
-    #     output predicted traj and output masks
-    #     :return: True means received
-    #     """
-    #     self.gst_out_traj=data
-    #     return True
-
 
     def generate_observation(self)->dict:
         """Generate observation for reset and step functions"""
@@ -252,11 +242,15 @@ class CrowdSimCar(gym.Env):
         return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
 
     def calc_reward(self)->tuple:
-        
-        distance_from_human = self.robot.distance_from_other_agents([human.get_position() for human in Human.HUMAN_LIST])
+        if len(Human.HUMAN_LIST) != 0:
+            distance_from_human = self.robot.distance_from_other_agents([human.get_position() for human in Human.HUMAN_LIST])
 
-        collision_reward = self.compute_collision_reward(distance_from_human)
-        near_collision_reward = self.compute_near_collision_reward(distance_from_human)
+            collision_reward = self.compute_collision_reward(distance_from_human)
+            near_collision_reward = self.compute_near_collision_reward(distance_from_human)
+        else:
+            collision_reward = 0
+            near_collision_reward = 0
+
         speed_reward = self.compute_speed_reward(self.robot.velocity_norm, self.robot.desired_speed)
         angle_from_goal = np.abs(self.robot.get_angle_from_goal())
         # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
@@ -268,13 +262,24 @@ class CrowdSimCar(gym.Env):
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
+        collision_factor = 1
+        near_collision_factor = 1
+        speed_factor = 10
+        angular_factor = 4
+        proximity_factor = 8
+
+        collision_reward *= collision_factor
+        near_collision_reward *= near_collision_factor
+        speed_reward *= speed_factor
+        angular_reward *= angular_factor
+        proximity_reward *= proximity_factor
+
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
 
-        # print(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
+        logging.debug(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
-        # TODO check if we are at the last goal and close enough to it
         reward_all_goals_reached = 50
         reward_single_goal_reached = 10
 
