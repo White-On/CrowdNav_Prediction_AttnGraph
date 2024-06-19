@@ -17,6 +17,7 @@ import chime
 import logging
 import csv
 from pathlib import Path
+from torch.utils.tensorboard import SummaryWriter
 
 class PPO:
 	"""
@@ -69,6 +70,8 @@ class PPO:
 		}
 
 		logging.info(f"Policy Gradient Actor-Critic with PPO initialized. \nAll attributes: {self.__dict__.items()}")
+		# Initialize the Summary Writer
+		self.writer = SummaryWriter()
 
 	def learn(self, total_timesteps):
 		"""
@@ -146,12 +149,45 @@ class PPO:
 				# Log actor loss
 				self.logger['actor_losses'].append(actor_loss.detach())
 
+			# Calculate logging values. I use a few python shortcuts to calculate each value
+			# without explaining since it's not too important to PPO; feel free to look it over,
+			# and if you have any questions you can email me (look at bottom of README)
+
+			delta_t = self.logger['delta_t']
+			self.logger['delta_t'] = time.time_ns()
+			delta_t = (self.logger['delta_t'] - delta_t) / 1e9
+			delta_t = str(round(delta_t, 2))
+
+			t_so_far = self.logger['t_so_far']
+			i_so_far = self.logger['i_so_far']
+			avg_ep_lens = np.mean(self.logger['batch_lens'])
+			avg_ep_rews = np.mean([np.sum(ep_rews) for ep_rews in self.logger['batch_rews']])
+			avg_actor_loss = np.mean([losses.float().mean() for losses in self.logger['actor_losses']])
+
 			# Print a summary of our training so far
-			self._log_summary()
+			self._log_summary(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
+
+			# Save episodic data to CSV file
+			self._save_episodic_data_to_csv(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t)
+
+			# Log the training data to tensorboard
+			self._tensorboard_log(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
+
+			if avg_actor_loss > 0.0:
+				chime.success()
+
+			# Reset batch-specific logging data
+			self.logger['batch_lens'] = []
+			self.logger['batch_rews'] = []
+			self.logger['actor_losses'] = []
+
 			# Save our model if it's time
 			if i_so_far % self.save_freq == 0:
 				torch.save(self.actor.state_dict(), './ppo_actor.pth')
 				torch.save(self.critic.state_dict(), './ppo_critic.pth')
+		
+		# Close the tensorboard writer
+		self.writer.close()
 
 	def rollout(self):
 		"""
@@ -361,7 +397,7 @@ class PPO:
 			torch.manual_seed(self.seed)
 			logging.info(f"Successfully set seed to {self.seed}")
 
-	def _log_summary(self):
+	def _log_summary(self, avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t):
 		"""
 			Print to stdout what we've logged so far in the most recent batch.
 
@@ -371,43 +407,15 @@ class PPO:
 			Return:
 				None
 		"""
-		# Calculate logging values. I use a few python shortcuts to calculate each value
-		# without explaining since it's not too important to PPO; feel free to look it over,
-		# and if you have any questions you can email me (look at bottom of README)
-		delta_t = self.logger['delta_t']
-		self.logger['delta_t'] = time.time_ns()
-		delta_t = (self.logger['delta_t'] - delta_t) / 1e9
-		delta_t = str(round(delta_t, 2))
-
-		t_so_far = self.logger['t_so_far']
-		i_so_far = self.logger['i_so_far']
-		avg_ep_lens = np.mean(self.logger['batch_lens'])
-		avg_ep_rews = np.mean([np.sum(ep_rews) for ep_rews in self.logger['batch_rews']])
-		avg_actor_loss = np.mean([losses.float().mean() for losses in self.logger['actor_losses']])
-
-		# Round decimal places for more aesthetic logging messages
-		avg_ep_lens = str(round(avg_ep_lens, 2))
-		avg_ep_rews = str(round(avg_ep_rews, 2))
-		avg_actor_loss = str(round(avg_actor_loss, 5))
 
 		# Print logging statements
 		logging.info(f"-------------------- Iteration #{i_so_far} --------------------\n\
-			Average Episodic Length: {avg_ep_lens}\n\
-			Average Episodic Return: {avg_ep_rews}\n\
-			Average Loss: {avg_actor_loss}\n\
+			Average Episodic Length: {avg_ep_lens:.2f}\n\
+			Average Episodic Return: {avg_ep_rews:.2f}\n\
+			Average Loss: {avg_actor_loss:.2f}\n\
 			Timesteps So Far: {t_so_far}\n\
 			Iteration took: {delta_t} secs\n\
 			------------------------------------------------------")
-		# Save episodic data to CSV file
-		self._save_episodic_data_to_csv(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t)
-
-		if float(avg_actor_loss) > 0.0:
-			chime.success()
-
-		# Reset batch-specific logging data
-		self.logger['batch_lens'] = []
-		self.logger['batch_rews'] = []
-		self.logger['actor_losses'] = []
 	
 	def _save_episodic_data_to_csv(self, avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t):
 		"""
@@ -439,3 +447,19 @@ class PPO:
 		with open(self.csv_path, 'a') as f:
 			writer = csv.writer(f)
 			writer.writerow([avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t])
+	
+	def _tensorboard_log(self, avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t):
+		"""
+			Log to tensorboard what we've logged so far in the most recent batch.
+
+			Parameters:
+				None
+
+			Return:
+				None
+		"""
+		self.writer.add_scalar('Average Episodic Length', avg_ep_lens, i_so_far)
+		self.writer.add_scalar('Average Episodic Return', avg_ep_rews, i_so_far)
+		self.writer.add_scalar('Average Actor Loss', avg_actor_loss, i_so_far)
+		self.writer.add_scalar('Timesteps So Far', t_so_far, i_so_far)
+		self.writer.add_scalar('Time Elapsed', delta_t, i_so_far)
