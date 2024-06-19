@@ -98,6 +98,12 @@ class CrowdSimCar(gym.Env):
 
         self.global_time = 0
         self.all_agent_group.reset()
+        if len(Human.HUMAN_LIST) != 0:
+            distance_from_human = self.robot.distance_from_other_agents([human.get_position() for human in Human.HUMAN_LIST])
+            while self.compute_collision_reward(distance_from_human) < 0:
+                self.robot.reset()
+                distance_from_human = self.robot.distance_from_other_agents([human.get_position() for human in Human.HUMAN_LIST])
+        
         # get robot observation
         observation_after_reset = self.generate_observation()
         if self.render_mode is not None:
