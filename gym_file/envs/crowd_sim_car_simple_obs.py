@@ -47,7 +47,11 @@ class CrowdSimCarSimpleObs(gym.Env):
         self.goal_threshold_distance = 0.1
 
         sensor_range = 4
-        self.robot = Robot(self.time_step, arena_size=arena_size, sensor_range=sensor_range,nb_forseen_goal=self.nb_time_steps_seen_as_graph_feature)
+        self.robot = Robot(self.time_step, 
+                           arena_size=arena_size, 
+                           sensor_range=sensor_range,
+                           nb_forseen_goal=self.nb_time_steps_seen_as_graph_feature,
+                           is_visible=False,)
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 

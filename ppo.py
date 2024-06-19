@@ -13,6 +13,8 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import MultivariateNormal
+import chime
+import logging
 
 class PPO:
 	"""
@@ -74,8 +76,8 @@ class PPO:
 			Return:
 				None
 		"""
-		print(f"Learning... Running {self.max_timesteps_per_episode} timesteps per episode, ", end='')
-		print(f"{self.timesteps_per_batch} timesteps per batch for a total of {total_timesteps} timesteps")
+		logging.info(f"Learning... Running {self.max_timesteps_per_episode} timesteps per episode, \
+					{self.timesteps_per_batch} timesteps per batch for a total of {total_timesteps} timesteps")
 		t_so_far = 0 # Timesteps simulated so far
 		i_so_far = 0 # Iterations ran so far
 		while t_so_far < total_timesteps:                                                                       # ALG STEP 2
@@ -145,6 +147,7 @@ class PPO:
 
 			# Save our model if it's time
 			if i_so_far % self.save_freq == 0:
+				chime.success()
 				torch.save(self.actor.state_dict(), './ppo_actor.pth')
 				torch.save(self.critic.state_dict(), './ppo_critic.pth')
 
@@ -335,7 +338,7 @@ class PPO:
 		self.clip = 0.2                                 # Recommended 0.2, helps define the threshold to clip the ratio during SGA
 
 		# Miscellaneous parameters
-		self.render = True                              # If we should render during rollout
+		self.render = True                             # If we should render during rollout
 		self.render_every_i = 10                        # Only render every n iterations
 		self.save_freq = 10                             # How often we save in number of iterations
 		self.seed = None                                # Sets the seed of our program, used for reproducibility of results
@@ -347,11 +350,13 @@ class PPO:
 		# Sets the seed if specified
 		if self.seed != None:
 			# Check if our seed is valid first
+			logging.error("Seed must be an integer")
+			chime.error()
 			assert(type(self.seed) == int)
 
 			# Set the seed 
 			torch.manual_seed(self.seed)
-			print(f"Successfully set seed to {self.seed}")
+			logging.info(f"Successfully set seed to {self.seed}")
 
 	def _log_summary(self):
 		"""
@@ -383,16 +388,13 @@ class PPO:
 		avg_actor_loss = str(round(avg_actor_loss, 5))
 
 		# Print logging statements
-		print(flush=True)
-		print(f"-------------------- Iteration #{i_so_far} --------------------", flush=True)
-		print(f"Average Episodic Length: {avg_ep_lens}", flush=True)
-		print(f"Average Episodic Return: {avg_ep_rews}", flush=True)
-		print(f"Average Loss: {avg_actor_loss}", flush=True)
-		print(f"Timesteps So Far: {t_so_far}", flush=True)
-		print(f"Iteration took: {delta_t} secs", flush=True)
-		print(f"------------------------------------------------------", flush=True)
-		print(flush=True)
-
+		logging.info(f"-------------------- Iteration #{i_so_far} --------------------\n\
+			Average Episodic Length: {avg_ep_lens}\n\
+			Average Episodic Return: {avg_ep_rews}\n\
+			Average Loss: {avg_actor_loss}\n\
+			Timesteps So Far: {t_so_far}\n\
+			Iteration took: {delta_t} secs\n\
+			------------------------------------------------------")
 		# Reset batch-specific logging data
 		self.logger['batch_lens'] = []
 		self.logger['batch_rews'] = []

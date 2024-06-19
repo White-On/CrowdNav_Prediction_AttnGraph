@@ -13,6 +13,9 @@ from network import FeedForwardNN
 from eval_policy import eval_policy
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
+import chime
+import logging
+from logger import logging_setup
 
 def train(env, hyperparameters, actor_model, critic_model):
 	"""
@@ -27,22 +30,23 @@ def train(env, hyperparameters, actor_model, critic_model):
 		Return:
 			None
 	"""	
-	print(f"Training", flush=True)
+	logging.info(f"Training")
 
 	# Create a model for PPO.
 	model = PPO(policy_class=FeedForwardNN, env=env, **hyperparameters)
 
 	# Tries to load in an existing actor/critic model to continue training on
 	if actor_model != '' and critic_model != '':
-		print(f"Loading in {actor_model} and {critic_model}...", flush=True)
+		logging.info(f"Loading in {actor_model} and {critic_model}...")
 		model.actor.load_state_dict(torch.load(actor_model))
 		model.critic.load_state_dict(torch.load(critic_model))
-		print(f"Successfully loaded.", flush=True)
+		logging.info(f"Successfully loaded.")
 	elif actor_model != '' or critic_model != '': # Don't train from scratch if user accidentally forgets actor/critic model
-		print(f"Error: Either specify both actor/critic models or none at all. We don't want to accidentally override anything!")
+		logging.error(f"Error: Either specify both actor/critic models or none at all. We don't want to accidentally override anything!")
+		chime.error()
 		sys.exit(0)
 	else:
-		print(f"Training from scratch.", flush=True)
+		logging.info(f"Training from scratch.")
 
 	# Train the PPO model with a specified total timesteps
 	# NOTE: You can change the total timesteps here, I put a big number just because
@@ -60,11 +64,12 @@ def test(env, actor_model):
 		Return:
 			None
 	"""
-	print(f"Testing {actor_model}", flush=True)
+	logging.info(f"Testing {actor_model}")
 
 	# If the actor model is not specified, then exit
 	if actor_model == '':
-		print(f"Didn't specify model file. Exiting.", flush=True)
+		logging.error(f"Didn't specify model file. Exiting.")
+		chime.error()
 		sys.exit(0)
 
 	# Extract out dimensions of observation and action spaces
@@ -103,7 +108,7 @@ def main(args):
 				'n_updates_per_iteration': 10,
 				'lr': 3e-4, 
 				'clip': 0.2,
-				'render': True,
+				'render': False,
 				'render_every_i': 10
 			  }
 
@@ -111,6 +116,8 @@ def main(args):
 	# custom environment, note that it must inherit Gym and have both continuous
 	# observation and action spaces.
 	gym.logger.set_level(40)
+	chime.theme('sonic')
+	logging_setup('PPO_experimentation.log')
 	env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=400, nb_pedestrians=20)
 
 	# Train or test, depending on the mode specified
