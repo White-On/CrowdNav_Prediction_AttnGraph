@@ -83,8 +83,9 @@ class CrowdSimCar(gym.Env):
         # vehicle_speed_boundries = [-0.5, 2]
         # TODO put back the ability to drive backward
         vehicle_speed_boundries = [0.0, 2]
-        limit_angle = np.deg2rad(14)
-        # limit_angle = np.pi/6
+        # True limit angle is 14 degrees but for now we will use 30 degrees
+        # limit_angle = np.deg2rad(14)
+        limit_angle = np.pi/6
         vehicle_angle_boundries = [-limit_angle, limit_angle]
 
         action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))

@@ -69,7 +69,7 @@ class PPO:
 			'actor_losses': [],     # losses of actor network in current iteration
 		}
 
-		logging.info(f"Policy Gradient Actor-Critic with PPO initialized. \nAll attributes: {self.__dict__.items()}")
+		logging.debug(f"Policy Gradient Actor-Critic with PPO initialized. \nAll attributes: {self.__dict__.items()}")
 		# Initialize the Summary Writer
 		self.writer = SummaryWriter()
 
@@ -156,7 +156,7 @@ class PPO:
 			delta_t = self.logger['delta_t']
 			self.logger['delta_t'] = time.time_ns()
 			delta_t = (self.logger['delta_t'] - delta_t) / 1e9
-			delta_t = str(round(delta_t, 2))
+			delta_t = round(delta_t, 2)
 
 			t_so_far = self.logger['t_so_far']
 			i_so_far = self.logger['i_so_far']
@@ -169,7 +169,7 @@ class PPO:
 
 			# Save episodic data to CSV file
 			self._save_episodic_data_to_csv(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t)
-
+			
 			# Log the training data to tensorboard
 			self._tensorboard_log(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
 
