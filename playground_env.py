@@ -16,10 +16,11 @@ def main():
     logging_setup(log_file)
 
     num_steps = 200
+    random_behavior = True
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=20)
+    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=0)
     logging.info(f'{env.observation_space.shape[0]}')
     save = False
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
@@ -28,10 +29,15 @@ def main():
         env.reset()
         for step in range(num_steps):
             action = env.robot.predict_what_to_do()
+            if random_behavior:
+                random_angle = np.random.uniform(-np.pi/6, np.pi/6)
+                action = [1, random_angle]
             obs, reward, done, info = env.step(action)
 
-            
-            logging.info(f"{obs.shape = }")
+            if isinstance(obs, list):
+                obs = np.array(obs)
+
+            # logging.info(f"{obs.shape = }")
             logging.info(f'Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}')
             if done:
                 logging.info(f'Episode {episode+1} finished at step {step+1}, status: {info}')

@@ -39,7 +39,7 @@ class FeedForwardNN(nn.Module):
 				output - the output of our forward pass
 		"""
 		# Convert observation to tensor if it's a numpy array
-		if isinstance(obs, np.ndarray):
+		if isinstance(obs, np.ndarray) or isinstance(obs, list):
 			obs = torch.tensor(obs, dtype=torch.float)
 		activation1 = F.relu(self.layer1(obs))
 		activation2 = F.relu(self.layer2(activation1))

@@ -119,7 +119,7 @@ def main(args):
 	gym.logger.set_level(40)
 	chime.theme('sonic')
 	logging_setup('PPO_experimentation.log')
-	env = gym.make('CrowdSimCar-v1', render_mode=None, episode_time=400, nb_pedestrians=20)
+	env = gym.make('CrowdSimCar-v1', render_mode=None, episode_time=500, nb_pedestrians=20)
 
 	logging.info(f'Hyperparameters: {hyperparameters}')
 	# Train or test, depending on the mode specified
