@@ -154,7 +154,7 @@ class CrowdSimCarSimpleObs(gym.Env):
     #     return True
 
 
-    def generate_observation(self)->dict:
+    def generate_observation(self)->list:
         """Generate observation for reset and step functions"""
 
         observation = {}
@@ -199,7 +199,7 @@ class CrowdSimCarSimpleObs(gym.Env):
         visibility_mask = [True if human.id in list_of_visible_humans else False for human in Human.HUMAN_LIST]
         observation['visible_masks'] = visibility_mask
         flatten_observation = np.concatenate((observation['robot_node'].flatten(),observation['graph_features'].flatten()), axis=None)
-        return flatten_observation
+        return flatten_observation.tolist()
     
     
     def compute_collision_reward(self, distance_from_human:float)->float:

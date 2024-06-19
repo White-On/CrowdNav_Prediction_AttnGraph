@@ -1,3 +1,5 @@
+import logging
+
 """
 	This file is used only to evaluate our trained policy/actor after
 	training in main.py with ppo.py. I wrote this file to demonstrate
@@ -21,12 +23,10 @@ def _log_summary(ep_len, ep_ret, ep_num):
 		ep_ret = str(round(ep_ret, 2))
 
 		# Print logging statements
-		print(flush=True)
-		print(f"-------------------- Episode #{ep_num} --------------------", flush=True)
-		print(f"Episodic Length: {ep_len}", flush=True)
-		print(f"Episodic Return: {ep_ret}", flush=True)
-		print(f"------------------------------------------------------", flush=True)
-		print(flush=True)
+		logging.info(f"-------------------- Episode #{ep_num} --------------------\n\
+		Episodic Length: {ep_len}\n\
+		Episodic Return: {ep_ret}\n\
+		------------------------------------------------------")
 
 def rollout(policy, env, render):
 	"""

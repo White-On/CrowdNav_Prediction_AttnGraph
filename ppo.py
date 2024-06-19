@@ -401,7 +401,7 @@ class PPO:
 		# Save episodic data to CSV file
 		self._save_episodic_data_to_csv(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t)
 
-		if avg_actor_loss < 0.0:
+		if float(avg_actor_loss) > 0.0:
 			chime.success()
 
 		# Reset batch-specific logging data
