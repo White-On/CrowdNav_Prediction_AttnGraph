@@ -136,12 +136,10 @@ class Robot(Agent):
         return np.clip(desired_velocity_norm, lower_limit, upper_limit)
     
     def compute_orientation(self)-> float:
-        # TODO maybe limit the change speed of the orientation too ? 
         orientation = (self.velocity_norm / self.robot_size) * np.tan(self.theta) * self.delta_t
         return orientation
 
     def compute_position(self) -> list:
-        # TODO add the limit of change in speed
         x = self.velocity_norm * np.cos(self.orientation) * self.delta_t + self.coordinates[0]
         y = self.velocity_norm * np.sin(self.orientation) * self.delta_t + self.coordinates[1]  
         return [x, y]
@@ -184,6 +182,6 @@ class Robot(Agent):
         reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
         if reaching_end_path:
             # we add zeros to the relative goal coordinates to have a fixed size
-            # TODO maybe change zeros by infinity
-            relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.zeros((self.nb_forseen_goal - len(relative_goal_coordinates), 2))))     
+            dummy_value = np.inf
+            relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.full((self.nb_forseen_goal - len(relative_goal_coordinates), 2), dummy_value)))
         return np.concatenate((self.velocity_norm, self.theta, relative_goal_coordinates),axis=None).tolist()

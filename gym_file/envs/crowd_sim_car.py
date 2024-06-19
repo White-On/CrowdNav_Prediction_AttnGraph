@@ -191,7 +191,7 @@ class CrowdSimCar(gym.Env):
             observation['graph_features'][i] = human_future_traj
         
         # transform the graph features into relative coordinates
-        # TODO/WARNING: Giving the robot relative position to the robot itself
+        # TODO/WARNING: Giving the robot relative position of the robot itself
         # does not make sense
         robot_position = np.array(self.robot.get_position())
         # add robot future traj
@@ -262,9 +262,11 @@ class CrowdSimCar(gym.Env):
         # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
         angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 
-        # TODO Je pense que ca ne vas pas fonctionner ici
-        current_goal_coordinates = self.robot.get_current_visible_goal()[0]
-        distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
+        # current_goal_coordinates = self.robot.get_current_visible_goal()
+        # if current_goal_coordinates is None:
+        #     distance_from_goal = 0
+        # else:
+        #     distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
@@ -299,9 +301,6 @@ class CrowdSimCar(gym.Env):
             logging.info('All robot goals are reached!')
             # self.all_agent_group.reset()
             reward += reward_all_goals_reached
-
-
-        # TODO si le robot est asser proche du but on lui donnera et on passe au goal suivant ?
 
         conditions = {
             episode_timeout: 'Timeout',

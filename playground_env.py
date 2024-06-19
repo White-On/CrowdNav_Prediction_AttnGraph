@@ -20,7 +20,7 @@ def main():
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=0)
+    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     logging.info(f'{env.observation_space.shape[0]}')
     save = False
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
