@@ -109,7 +109,8 @@ def main(args):
 				'lr': 3e-4, 
 				'clip': 0.2,
 				'render': False,
-				'render_every_i': 10
+				'render_every_i': 10,
+				'csv_path': None,
 			  }
 
 	# Creates the environment we'll be running. If you want to replace with your own
@@ -118,8 +119,9 @@ def main(args):
 	gym.logger.set_level(40)
 	chime.theme('sonic')
 	logging_setup('PPO_experimentation.log')
-	env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=400, nb_pedestrians=20)
+	env = gym.make('CrowdSimCar-v1', render_mode=None, episode_time=400, nb_pedestrians=20)
 
+	logging.info(f'Hyperparameters: {hyperparameters}')
 	# Train or test, depending on the mode specified
 	if args.mode == 'train':
 		train(env=env, hyperparameters=hyperparameters, actor_model=args.actor_model, critic_model=args.critic_model)

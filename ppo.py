@@ -15,6 +15,8 @@ from torch.optim import Adam
 from torch.distributions import MultivariateNormal
 import chime
 import logging
+import csv
+from pathlib import Path
 
 class PPO:
 	"""
@@ -65,6 +67,8 @@ class PPO:
 			'batch_rews': [],       # episodic returns in batch
 			'actor_losses': [],     # losses of actor network in current iteration
 		}
+
+		logging.info(f"Policy Gradient Actor-Critic with PPO initialized. \nAll attributes: {self.__dict__.items()}")
 
 	def learn(self, total_timesteps):
 		"""
@@ -144,10 +148,8 @@ class PPO:
 
 			# Print a summary of our training so far
 			self._log_summary()
-
 			# Save our model if it's time
 			if i_so_far % self.save_freq == 0:
-				chime.success()
 				torch.save(self.actor.state_dict(), './ppo_actor.pth')
 				torch.save(self.critic.state_dict(), './ppo_critic.pth')
 
@@ -340,8 +342,9 @@ class PPO:
 		# Miscellaneous parameters
 		self.render = True                             # If we should render during rollout
 		self.render_every_i = 10                        # Only render every n iterations
-		self.save_freq = 10                             # How often we save in number of iterations
+		self.save_freq = 1                             # How often we save in number of iterations
 		self.seed = None                                # Sets the seed of our program, used for reproducibility of results
+		self.csv_path = 'episodic_data.csv'             # Path to save episodic data for analysis
 
 		# Change any default values to custom values for specified hyperparameters
 		for param, val in hyperparameters.items():
@@ -395,7 +398,44 @@ class PPO:
 			Timesteps So Far: {t_so_far}\n\
 			Iteration took: {delta_t} secs\n\
 			------------------------------------------------------")
+		# Save episodic data to CSV file
+		self._save_episodic_data_to_csv(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t)
+
+		if avg_actor_loss < 0.0:
+			chime.success()
+
 		# Reset batch-specific logging data
 		self.logger['batch_lens'] = []
 		self.logger['batch_rews'] = []
 		self.logger['actor_losses'] = []
+	
+	def _save_episodic_data_to_csv(self, avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t):
+		"""
+			Save episodic data to a CSV file.
+
+			Parameters:
+				None
+
+			Return:
+				None
+		"""
+		# Check if the file is None
+		if self.csv_path == None:
+			# If it is, we create a default file
+			from datetime import datetime
+			# Get the current time and format it as a string
+			now = datetime.now()
+			time_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+
+			# Use the time string to create the file name
+			file_name = f"episodic_data_{time_string}.csv"
+			self.csv_path = file_name
+		# Check if the file already exists
+		if not Path(self.csv_path).is_file():
+			# If it doesn't, create a new file and write the header
+			with open(self.csv_path, 'w') as f:
+				writer = csv.writer(f)
+				writer.writerow(['Average Episodic Length', 'Average Episodic Return', 'Average Actor Loss', 'Timesteps So Far', 'Time Elapsed'])
+		with open(self.csv_path, 'a') as f:
+			writer = csv.writer(f)
+			writer.writerow([avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, delta_t])
