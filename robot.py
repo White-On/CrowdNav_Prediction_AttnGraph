@@ -85,9 +85,6 @@ class Robot(Agent):
         self.orientation = np.random.uniform(0, 2*np.pi)
     
     def predict_what_to_do(self, *other_agent_state:list) -> list:
-        # TODO: add the NN here
-        # speed_action = np.random.uniform(0.2,1)
-        # theta_action = np.random.uniform(-np.pi/6, np.pi/6)
         speed_action = 1
         theta_action = self.get_angle_from_goal()
         # theta_action = np.pi/6
@@ -121,14 +118,22 @@ class Robot(Agent):
         # we need to compute the speed vector somewhere
 
     def limit_theta_change(self,desired_theta:float)-> float:
-        # TODO add the limit of change in theta
         # clip the value of theta between 50% of the current theta value
-        # and adjust that % with the rotation speed
-        return np.clip(desired_theta,-np.pi/6, np.pi/6)
+        # and adjust that % with the rotation speed of the robot
+        current_theta = self.theta
+        rad_change_limit = np.pi/6
+
+        lower_limit = current_theta - rad_change_limit
+        upper_limit = current_theta + rad_change_limit
+
+        return np.clip(desired_theta, lower_limit, upper_limit)
 
     def limit_velocity_norm_change(self, desired_velocity_norm:float)->float:
         # same comment as the previous method
-        return desired_velocity_norm
+        current_velocity_norm = self.velocity_norm
+        lower_limit = current_velocity_norm - self.acceleration_limits[1]
+        upper_limit = current_velocity_norm + self.acceleration_limits[1]
+        return np.clip(desired_velocity_norm, lower_limit, upper_limit)
     
     def compute_orientation(self)-> float:
         # TODO maybe limit the change speed of the orientation too ? 

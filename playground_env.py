@@ -16,7 +16,7 @@ def main():
     logging_setup(log_file)
 
     num_steps = 200
-    random_behavior = True
+    random_behavior = False
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)

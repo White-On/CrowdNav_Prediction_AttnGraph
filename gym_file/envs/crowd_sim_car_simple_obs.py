@@ -79,7 +79,9 @@ class CrowdSimCarSimpleObs(gym.Env):
         # vehicle_speed_boundries = [-0.5, 2]
         # TODO put back the ability to drive backward
         vehicle_speed_boundries = [0.0, 2]
-        vehicle_angle_boundries = [-np.pi/6, np.pi/6]
+        limit_angle = np.deg2rad(14)
+        # limit_angle = np.pi/6
+        vehicle_angle_boundries = [-limit_angle, limit_angle]
 
         action_space_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries))
         return gym.spaces.Box(action_space_boundries[:,0], action_space_boundries[:,1], dtype=np.float32)
