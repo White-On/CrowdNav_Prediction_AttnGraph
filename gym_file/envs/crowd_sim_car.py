@@ -154,7 +154,7 @@ class CrowdSimCar(gym.Env):
         #     logging.info('All robot goals are reached!')
         #     self.all_agent_group.reset()
 
-        self.global_time += self.time_step
+        self.global_time += 1
 
         # compute the observation
         step_observation = self.generate_observation()
@@ -276,7 +276,7 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 2
+        speed_factor = 1
         angular_factor = 6
         proximity_factor = 0
 

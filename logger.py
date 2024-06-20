@@ -12,10 +12,10 @@ def logging_setup(log_file):
     shell_handler = RichHandler()
     file_handler = logging.FileHandler(log_file, mode='w')
 
-    level = logging.INFO
-    logger.setLevel(logging.INFO)
-    shell_handler.setLevel(logging.INFO)
-    file_handler.setLevel(logging.INFO)
+    level = logging.DEBUG
+    logger.setLevel(level)
+    shell_handler.setLevel(level)
+    file_handler.setLevel(level)
 
     fmt_shell = "%(asctime)s %(message)s"
     fmt_file = (

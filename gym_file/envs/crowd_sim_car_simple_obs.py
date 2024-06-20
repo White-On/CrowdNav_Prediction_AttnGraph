@@ -128,33 +128,4 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
     
     
     
-    def compute_near_collision_reward(self, distance_from_human:float)->float:
-        min_distance_to_keep_from_human = 1.5
-        distance_to_closest_human = np.min(distance_from_human)
-        vehicle_current_speed = self.robot.velocity_norm
-        vehicle_min_acceleration = self.robot.acceleration_limits[0]
-
-        dr = np.max([min_distance_to_keep_from_human, (vehicle_current_speed**2.0)/(2.0*vehicle_min_acceleration)])
-
-        return np.exp((distance_to_closest_human-dr)/dr)
-
-    def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:
-        if 0.0 < current_speed <= pref_speed:
-            # l = 1/pref_speed # old formula
-            # return l * (pref_speed - current_speed)
-            return 1-(pref_speed - current_speed)/pref_speed
-        elif current_speed > pref_speed:
-            return np.exp(-current_speed + pref_speed)
-        elif current_speed <= 0.0:
-            return current_speed
-    
-    def compute_angular_reward(self, angle:float)->float:
-        # TODO Careful with hard coded values
-        angle_penalty = 20
-        return np.exp(-angle/angle_penalty)
-
-    def compute_proximity_reward(self, distance_from_goal:float)->float:
-        # TODO Careful with hard coded values
-        penalty_distance = 2
-        return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
 
