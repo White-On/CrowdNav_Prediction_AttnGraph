@@ -72,7 +72,7 @@ def rollout(policy, env, render):
 			action = policy(obs).detach().numpy()
 			obs, rew, done, _ = env.step(action)
 
-			logging.debug(f"{np.array(obs) = }")
+			# logging.debug(f"{np.array(obs) = }")
 
 			# Sum all episodic rewards as we go along
 			ep_ret += rew

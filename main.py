@@ -108,15 +108,15 @@ def main(args):
 				'n_updates_per_iteration': 10,
 				'lr': 3e-4, 
 				'clip': 0.2,
-				'render': False,
-				'render_every_i': 50,
+				'render': True,
+				'render_every_i': 100,
 				'csv_path': None,
 			  }
 
 	# Creates the environment we'll be running. If you want to replace with your own
 	# custom environment, note that it must inherit Gym and have both continuous
 	# observation and action spaces.
-	
+
 	gym.logger.set_level(40)
 	matplotlib_logger = logging.getLogger('matplotlib')
 	matplotlib_logger.setLevel(logging.WARNING)

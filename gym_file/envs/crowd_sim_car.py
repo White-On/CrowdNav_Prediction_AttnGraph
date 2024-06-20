@@ -88,7 +88,7 @@ class CrowdSimCar(gym.Env):
     def define_action_space(self)->gym.spaces.Box:
         # vehicle_speed_boundries = [-0.5, 2]
         # TODO put back the ability to drive backward
-        vehicle_speed_boundries = [0.0, 2]
+        vehicle_speed_boundries = [0.0, 2.0]
         # True limit angle is 14 degrees but for now we will use 30 degrees
         # limit_angle = np.deg2rad(14)
         limit_angle = np.pi/6
@@ -233,15 +233,21 @@ class CrowdSimCar(gym.Env):
 
         return np.exp((distance_to_closest_human-dr)/dr)
 
+    # def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:
+    #     if 0.0 < current_speed <= pref_speed:
+    #         # l = 1/pref_speed # old formula
+    #         # return l * (pref_speed - current_speed)
+    #         return 1-(pref_speed - current_speed)/pref_speed
+    #     elif current_speed > pref_speed:
+    #         return np.exp(-current_speed + pref_speed)
+    #     elif current_speed <= 0.0:
+    #         return current_speed
+        
     def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:
-        if 0.0 < current_speed <= pref_speed:
-            # l = 1/pref_speed # old formula
-            # return l * (pref_speed - current_speed)
-            return 1-(pref_speed - current_speed)/pref_speed
+        if current_speed <= pref_speed:
+            return (np.exp(current_speed - pref_speed) - 0.5 ) * 2
         elif current_speed > pref_speed:
-            return np.exp(-current_speed + pref_speed)
-        elif current_speed <= 0.0:
-            return current_speed
+            return (np.exp(-current_speed + pref_speed) - 0.5 ) * 2
     
     def compute_angular_reward(self, angle:float)->float:
         # TODO Careful with hard coded values
@@ -279,7 +285,7 @@ class CrowdSimCar(gym.Env):
         collision_factor = 1
         near_collision_factor = 1
         speed_factor = 2
-        angular_factor = 6
+        angular_factor = 2
         proximity_factor = 0
 
         collision_reward *= collision_factor
