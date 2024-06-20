@@ -24,9 +24,9 @@ class FeedForwardNN(nn.Module):
 				None
 		"""
 		super(FeedForwardNN, self).__init__()
-		self.layer1 = nn.Linear(in_dim, 128)
-		self.layer2 = nn.Linear(128, 128)
-		self.layer3 = nn.Linear(128, out_dim)
+		self.layer1 = nn.Linear(in_dim, 64)
+		self.layer2 = nn.Linear(64, 64)
+		self.layer3 = nn.Linear(64, out_dim)
 
 	def forward(self, obs):
 		"""

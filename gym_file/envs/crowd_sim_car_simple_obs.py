@@ -71,7 +71,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2*(nb_graph_feature))
 
-        robot_node_shape = 1 + 1 + forseen_index * 2
+        robot_node_shape = 1 + 1 + 1 + forseen_index * 2
         graph_feature_shape = nb_humans * spatial_edge_dim
 
         return gym.spaces.Box(low=-np.inf, high=np.inf,shape=(robot_node_shape + graph_feature_shape,), dtype=np.float32)

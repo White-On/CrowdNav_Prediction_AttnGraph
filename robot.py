@@ -180,8 +180,9 @@ class Robot(Agent):
         """
         relative_goal_coordinates = np.array(self.get_current_visible_goal()) - np.array(self.coordinates)
         reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
+        angle_error = self.get_angle_from_goal()
         if reaching_end_path:
             # we add zeros to the relative goal coordinates to have a fixed size
             dummy_value = np.inf
             relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.full((self.nb_forseen_goal - len(relative_goal_coordinates), 2), dummy_value)))
-        return np.concatenate((self.velocity_norm, self.theta, relative_goal_coordinates),axis=None).tolist()
+        return np.concatenate((self.velocity_norm, self.theta, angle_error, relative_goal_coordinates),axis=None).tolist()

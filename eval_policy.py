@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 
 """
 	This file is used only to evaluate our trained policy/actor after
@@ -70,6 +71,8 @@ def rollout(policy, env, render):
 			# Query deterministic action from policy and run it
 			action = policy(obs).detach().numpy()
 			obs, rew, done, _ = env.step(action)
+
+			logging.debug(f"{np.array(obs) = }")
 
 			# Sum all episodic rewards as we go along
 			ep_ret += rew

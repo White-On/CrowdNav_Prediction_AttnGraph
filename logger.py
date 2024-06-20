@@ -6,13 +6,12 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-def logging_setup(log_file):
+def logging_setup(log_file:str, level=logging.INFO):
     logger = logging.getLogger(__name__)
 	
     shell_handler = RichHandler()
     file_handler = logging.FileHandler(log_file, mode='w')
 
-    level = logging.DEBUG
     logger.setLevel(level)
     shell_handler.setLevel(level)
     file_handler.setLevel(level)

@@ -116,9 +116,16 @@ def main(args):
 	# Creates the environment we'll be running. If you want to replace with your own
 	# custom environment, note that it must inherit Gym and have both continuous
 	# observation and action spaces.
+	
 	gym.logger.set_level(40)
+	matplotlib_logger = logging.getLogger('matplotlib')
+	matplotlib_logger.setLevel(logging.WARNING)
+
 	chime.theme('sonic')
-	logging_setup('PPO_experimentation.log')
+	if args.mode == 'train':
+		logging_setup('PPO_experimentation.log')
+	else:
+		logging_setup('PPO_evaluation.log',level=logging.DEBUG)
 	env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=hyperparameters['max_timesteps_per_episode'], nb_pedestrians=0, disable_env_checker=True)
 
 	logging.debug(f'Hyperparameters: {hyperparameters}')

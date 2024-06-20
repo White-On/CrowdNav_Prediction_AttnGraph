@@ -65,12 +65,14 @@ class CrowdSimCar(gym.Env):
     def define_observations_space(self, forseen_index:int, nb_humans:int,nb_graph_feature:int)->gym.spaces.Dict:
         observation_space = {}
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
-        vehicle_speed_boundries = [-0.5, 2]
-        vehicle_angle_boundries = [-np.pi/6, np.pi/6]
-        objectives_boundries = np.full((forseen_index, 2), [-10,10])
-        all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
-        observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
-        
+        # vehicle_speed_boundries = [-0.5, 2]
+        # vehicle_angle_boundries = [-np.pi/6, np.pi/6]
+        # objectives_boundries = np.full((forseen_index, 2), [-10,10])
+        # all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
+        # observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
+        observation_space['robot_node'] = gym.spaces.Box(low=-np.inf, high=np.inf,
+                                            shape=(3 + forseen_index * 2,), dtype=np.float32)
+
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2*(nb_graph_feature))
 
@@ -244,7 +246,7 @@ class CrowdSimCar(gym.Env):
     def compute_angular_reward(self, angle:float)->float:
         # TODO Careful with hard coded values
         angle_penalty = 20
-        return np.exp(-angle/angle_penalty) - 0.5
+        return (np.exp(-angle/angle_penalty) - 0.5) * 2
 
     def compute_proximity_reward(self, distance_from_goal:float)->float:
         # TODO Careful with hard coded values
@@ -276,7 +278,7 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 1
+        speed_factor = 2
         angular_factor = 6
         proximity_factor = 0
 
