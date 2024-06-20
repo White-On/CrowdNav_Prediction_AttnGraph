@@ -109,7 +109,7 @@ def main(args):
 				'lr': 3e-4, 
 				'clip': 0.2,
 				'render': False,
-				'render_every_i': 10,
+				'render_every_i': 50,
 				'csv_path': None,
 			  }
 
@@ -119,7 +119,7 @@ def main(args):
 	gym.logger.set_level(40)
 	chime.theme('sonic')
 	logging_setup('PPO_experimentation.log')
-	env = gym.make('CrowdSimCar-v1', render_mode=None, episode_time=hyperparameters['max_timesteps_per_episode'], nb_pedestrians=0, disable_env_checker=True)
+	env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=hyperparameters['max_timesteps_per_episode'], nb_pedestrians=0, disable_env_checker=True)
 
 	logging.debug(f'Hyperparameters: {hyperparameters}')
 	# Train or test, depending on the mode specified

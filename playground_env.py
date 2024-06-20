@@ -30,7 +30,7 @@ def main():
 
     for episode in range(num_episodes):
         env.reset()
-
+        env.render()
         
         for step in range(num_steps):
             action = env.robot.predict_what_to_do()
@@ -38,6 +38,7 @@ def main():
                 random_angle = np.random.uniform(-np.pi/6, np.pi/6)
                 action = [1, random_angle]
             obs, reward, done, info = env.step(action)
+            env.render()
 
             if isinstance(obs, list):
                 obs = np.array(obs)

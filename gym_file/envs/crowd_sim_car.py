@@ -111,8 +111,6 @@ class CrowdSimCar(gym.Env):
         
         # get robot observation
         observation_after_reset = self.generate_observation()
-        if self.render_mode is not None:
-            self._render_frame(mode = self.render_mode)
 
         return observation_after_reset
     
@@ -161,8 +159,6 @@ class CrowdSimCar(gym.Env):
         # compute the observation
         step_observation = self.generate_observation()
 
-        if self.render_mode is not None:
-            self._render_frame(mode = self.render_mode)
 
         return step_observation, reward, done, episode_info
 
@@ -280,7 +276,7 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 6
+        speed_factor = 2
         angular_factor = 6
         proximity_factor = 0
 
@@ -328,12 +324,13 @@ class CrowdSimCar(gym.Env):
         return reward, done, episode_info
 
 
-    def _render_frame(self, mode='human')->None:
+    def _render_frame(self)->None:
         """
         render function
         """
-        # plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
-
+        if self.render_mode == None:
+            return
+        
         robot_color = 'gold'
         human_color = 'gray'
         visible_human_color = 'blue'
@@ -385,7 +382,7 @@ class CrowdSimCar(gym.Env):
         # ax.plot(*self.robot.get_position(), color=robot_color, marker='o', markersize=robot_visual_radius, label='Robot')
         ax.add_artist(patches.Rectangle((robotX - robot_radius, robotY - robot_radius), 3 * robot_radius, 2*robot_radius, color=robot_color, linewidth=0.5, angle=np.degrees(self.robot.orientation), rotation_point=(robotX, robotY)))
         # direction and goal arrow
-        if mode == 'debug':
+        if self.render_mode == 'debug':
             ax.arrow(x=self.robot.coordinates[0], y=self.robot.coordinates[1], dx=self.robot.speed[0], dy=self.robot.speed[1], head_width=0.1, head_length=0.1, fc=direction_arrow_color, ec=direction_arrow_color)
             velocity_toward_goal = np.array(self.robot.get_current_visible_goal()[0]) - np.array(self.robot.coordinates)
             normalized_velocity = velocity_toward_goal / np.linalg.norm(velocity_toward_goal)
@@ -406,7 +403,7 @@ class CrowdSimCar(gym.Env):
             if human.id in id_visible_agent_by_robot:
                 color = visible_human_color
             ax.plot(*human.get_position(), color=color, marker='o', markersize=human_visual_radius, label='Human')
-            if mode == 'debug':
+            if self.render_mode == 'debug':
                 ax.plot(*human.goal_coordinates, color=human_goal_color, marker='o', label='Human Goal')
                 ax.arrow(x=human.coordinates[0], y=human.coordinates[1], dx=human.speed[0], dy=human.speed[1], head_width=0.1, head_length=0.1, fc=direction_arrow_color, ec=direction_arrow_color)
                 velocity_toward_goal = np.array(human.goal_coordinates) - np.array(human.coordinates)
@@ -425,9 +422,9 @@ class CrowdSimCar(gym.Env):
                 ax.plot(human_future_traj[:, 0], human_future_traj[:, 1], color='tab:orange', marker='o', markersize=human_visual_radius, label='Human Future Traj', alpha=0.5, linestyle='--')
         
         # plot reward space for experiment
-        x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
-        reward_color = 'red'
-        plt.scatter(x[0], x[1], color=reward_color)
+        # x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
+        # reward_color = 'red'
+        # plt.scatter(x[0], x[1], color=reward_color)
 
 
         if self.render_delay:
@@ -435,8 +432,10 @@ class CrowdSimCar(gym.Env):
         else:
             plt.pause(0.0001)
 
-    def render(self, mode='human'):
-        self._render_frame(mode)
+    def render(self)->None:
+        if self.render_mode == None:
+            return
+        self._render_frame()
 
 
 def distance_from_line(x:float,y:float, path:list) -> float:
