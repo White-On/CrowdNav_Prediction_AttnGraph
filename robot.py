@@ -155,7 +155,7 @@ class Robot(Agent):
     
     def get_angle_from_goal(self)->float:
         goal_coordinate = self.get_current_visible_goal()
-        if goal_coordinate is None:
+        if goal_coordinate is None or len(goal_coordinate) == 0:
             return 0.0
         else:
             goal_coordinate = goal_coordinate[0]
@@ -178,11 +178,28 @@ class Robot(Agent):
         the robot's orientation and the relative goal coordinates. Number of goals
         to consider is defined by the attribute nb_forseen_goal
         """
-        relative_goal_coordinates = np.array(self.get_current_visible_goal()) - np.array(self.coordinates)
-        reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
+        current_visible_goal = self.get_current_visible_goal()
+        if current_visible_goal is None or len(current_visible_goal) == 0:
+            return [self.velocity_norm, self.theta, 0.0]
+        
         angle_error = self.get_angle_from_goal()
+        relative_goal_coordinates = global_to_relative(np.array(current_visible_goal[0]), np.array(self.coordinates), self.orientation)
+        reaching_end_path = len(relative_goal_coordinates.tolist()) < self.nb_forseen_goal
+
         if reaching_end_path:
             # we add zeros to the relative goal coordinates to have a fixed size
             dummy_value = np.inf
             relative_goal_coordinates = np.concatenate((relative_goal_coordinates, np.full((self.nb_forseen_goal - len(relative_goal_coordinates), 2), dummy_value)))
         return np.concatenate((self.velocity_norm, self.theta, angle_error, relative_goal_coordinates),axis=None).tolist()
+
+
+def global_to_relative(global_coordinates, point_coordinates, point_orientation):
+    # Translate the global coordinates so the point is at the origin
+    translated_coordinates = global_coordinates - point_coordinates
+
+    # Rotate the translated coordinates by the negative of the point's orientation
+    rotation_matrix = np.array([[np.cos(-point_orientation), -np.sin(-point_orientation)],
+                                [np.sin(-point_orientation), np.cos(-point_orientation)]])
+    relative_coordinates = np.dot(rotation_matrix, translated_coordinates)
+
+    return relative_coordinates

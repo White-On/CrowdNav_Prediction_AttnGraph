@@ -173,7 +173,7 @@ class PPO:
 			# Log the training data to tensorboard
 			self._tensorboard_log(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
 
-			if avg_actor_loss > 0.0:
+			if avg_ep_rews > 0.0:
 				chime.success()
 
 			# Reset batch-specific logging data
@@ -436,7 +436,7 @@ class PPO:
 			time_string = now.strftime("%Y_%m_%d_%H_%M_%S")
 
 			# Use the time string to create the file name
-			file_name = f"episodic_data_{time_string}.csv"
+			file_name = f"experiment_csv/episodic_data_{time_string}.csv"
 			self.csv_path = file_name
 		# Check if the file already exists
 		if not Path(self.csv_path).is_file():

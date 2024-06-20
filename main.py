@@ -103,12 +103,12 @@ def main(args):
 	# To see a list of hyperparameters, look in ppo.py at function _init_hyperparameters
 	hyperparameters = {
 				'timesteps_per_batch': 2048, 
-				'max_timesteps_per_episode': 200, 
+				'max_timesteps_per_episode': 400, 
 				'gamma': 0.99, 
 				'n_updates_per_iteration': 10,
 				'lr': 3e-4, 
 				'clip': 0.2,
-				'render': True,
+				'render': False,
 				'render_every_i': 100,
 				'csv_path': None,
 			  }

@@ -284,7 +284,7 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 2
+        speed_factor = 4
         angular_factor = 2
         proximity_factor = 0
 
@@ -301,7 +301,7 @@ class CrowdSimCar(gym.Env):
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
         reward_all_goals_reached = 50
-        reward_single_goal_reached = 10
+        reward_single_goal_reached = 20
 
         # print(f'🎯 distance_from_goal: {distance_from_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
@@ -310,9 +310,9 @@ class CrowdSimCar(gym.Env):
             self.robot.next_goal()
         all_goals_reached = self.robot.current_goal_cusor >= len(self.robot.collection_goal_coordinates)
         if all_goals_reached:
-            logging.info('All robot goals are reached!')
+            logging.debug('All robot goals are reached!')
             reward += reward_all_goals_reached
-            # self.all_agent_group.reset()
+            self.all_agent_group.reset()
 
         conditions = {
             episode_timeout: 'Timeout',
