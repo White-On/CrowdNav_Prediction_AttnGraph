@@ -20,7 +20,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
     '''
     metadata = {"render_modes": ["human","debug", None]}
                 
-    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=False):
+    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=False, robot_is_visible=False):
         self.arena_size = arena_size
         if render_mode not in self.metadata['render_modes']:
             logging.error(f"Mode {render_mode} is not supported")
@@ -53,7 +53,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
                            arena_size=arena_size, 
                            sensor_range=sensor_range,
                            nb_forseen_goal=self.nb_forseen_goal,
-                           is_visible=False,
+                           is_visible=robot_is_visible,
                            radius=0.3,
                            )
         for _ in range(nb_pedestrians):

@@ -10,23 +10,28 @@ import numpy as np
 import gym
 
 
+
 def main():
     gym.logger.set_level(40)
     log_file = 'env_experiment.log'
     logging_setup(log_file)
 
-    num_steps = 200
+    num_steps = 500
     random_behavior = False
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-    env = gym.make('CrowdSimCar-v1', render_mode='human', episode_time=num_steps, nb_pedestrians=20, disable_env_checker=True)
-    logging.info(f'{env.observation_space.shape[0]}')
+    env = gym.make('CrowdSimCar-v0', render_mode='human', episode_time=num_steps, nb_pedestrians=20, disable_env_checker=True, robot_is_visible=True)
+    # logging.info(f'{env.observation_space.shape[0]}')
     save = False
     log_results_episodes = {'episode':[], 'status':[], 'reward':[], 'steps':[]}
 
+    # sample different position points on the map
+
     for episode in range(num_episodes):
         env.reset()
+
+        
         for step in range(num_steps):
             action = env.robot.predict_what_to_do()
             if random_behavior:
@@ -47,7 +52,6 @@ def main():
                     log_results_episodes['reward'].append(reward)
                     log_results_episodes['steps'].append(step+1)
                 # break
-                
     
     env.close()
     if save:

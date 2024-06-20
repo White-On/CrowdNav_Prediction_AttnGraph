@@ -19,7 +19,7 @@ class CrowdSimCar(gym.Env):
     '''
     metadata = {"render_modes": ["human","debug", None]}
                 
-    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=True):
+    def __init__(self, render_mode=None, arena_size=6, nb_pedestrians=10, episode_time=100, time_step=0.1, display_future_trajectory=True, robot_is_visible=False):
         self.arena_size = arena_size
         if render_mode not in self.metadata['render_modes']:
             logging.error(f"Mode {render_mode} is not supported")
@@ -47,7 +47,11 @@ class CrowdSimCar(gym.Env):
         self.goal_threshold_distance = 0.1
 
         sensor_range = 4
-        self.robot = Robot(self.time_step, arena_size=arena_size, sensor_range=sensor_range,nb_forseen_goal=self.nb_time_steps_seen_as_graph_feature)
+        self.robot = Robot(self.time_step, 
+                           arena_size=arena_size, 
+                           sensor_range=sensor_range,
+                           nb_forseen_goal=self.nb_time_steps_seen_as_graph_feature,
+                           is_visible=robot_is_visible,)
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 
@@ -75,7 +79,7 @@ class CrowdSimCar(gym.Env):
         
         observation_space['visible_masks'] = gym.spaces.Box(low=-np.inf, high=np.inf,
                                             shape=(nb_humans,),
-                                            dtype=np.bool8)
+                                            dtype=np.float32)
             
         return gym.spaces.Dict(observation_space)
     
@@ -121,6 +125,9 @@ class CrowdSimCar(gym.Env):
         
         # compute reward and episode info
         reward, done, episode_info = self.calc_reward()
+
+        if done:
+            self.all_agent_group.reset()
 
         # apply action and update all agents
         agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
@@ -241,12 +248,12 @@ class CrowdSimCar(gym.Env):
     def compute_angular_reward(self, angle:float)->float:
         # TODO Careful with hard coded values
         angle_penalty = 20
-        return np.exp(-angle/angle_penalty)
+        return np.exp(-angle/angle_penalty) - 0.5
 
     def compute_proximity_reward(self, distance_from_goal:float)->float:
         # TODO Careful with hard coded values
-        penalty_distance = 2
-        return 1 - 2 / (1 + np.exp(-distance_from_goal + penalty_distance))
+        penalty_distance = 1
+        return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
 
     def calc_reward(self)->tuple:
         if len(Human.HUMAN_LIST) != 0:
@@ -273,9 +280,9 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 10
-        angular_factor = 4
-        proximity_factor = 8
+        speed_factor = 6
+        angular_factor = 6
+        proximity_factor = 0
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -300,8 +307,8 @@ class CrowdSimCar(gym.Env):
         all_goals_reached = self.robot.current_goal_cusor >= len(self.robot.collection_goal_coordinates)
         if all_goals_reached:
             logging.info('All robot goals are reached!')
-            # self.all_agent_group.reset()
             reward += reward_all_goals_reached
+            # self.all_agent_group.reset()
 
         conditions = {
             episode_timeout: 'Timeout',
@@ -417,35 +424,12 @@ class CrowdSimCar(gym.Env):
                 human_future_traj = human_future_traj + np.array([robotX, robotY])
                 ax.plot(human_future_traj[:, 0], human_future_traj[:, 1], color='tab:orange', marker='o', markersize=human_visual_radius, label='Human Future Traj', alpha=0.5, linestyle='--')
         
-        # # plot the current human states
-        # for i in range(len(self.humans)):
-        #     ax.add_artist(human_circles[i])
-        #     artists.append(human_circles[i])
+        # plot reward space for experiment
+        x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
+        reward_color = 'red'
+        plt.scatter(x[0], x[1], color=reward_color)
 
-        #     # green: visible; red: invisible
-        #     if self.human_visibility[i]:
-        #         human_circles[i].set_color(c='b')
-        #     else:
-        #         human_circles[i].set_color(c='r')
 
-        #     if -actual_arena_size <= self.humans[i].px <= actual_arena_size and -actual_arena_size <= self.humans[
-        #         i].py <= actual_arena_size:
-        #         # label numbers on each human
-        #         # plt.text(self.humans[i].px - 0.1, self.humans[i].py - 0.1, str(self.humans[i].id), color='black', fontsize=12)
-        #         plt.text(self.humans[i].px , self.humans[i].py , i, color='black', fontsize=12)
-
-        # # plot predicted human positions
-        # if self.gst_out_traj is not None:
-        #     for i in range(len(self.humans)):
-        #     # add future predicted positions of each human
-        #         if self.human_visibility[i]:
-        #             for j in range(self.predict_steps):
-        #                 circle = plt.Circle(self.gst_out_traj[i, (2 * j):(2 * j + 2)] + np.array([robotX, robotY]),
-        #                                     self.config.humans.radius, fill=False, color='tab:orange', linewidth=1.5, alpha=0.5)
-        #                 # circle = plt.Circle(np.array([robotX, robotY]),
-        #                 #                     self.humans[i].radius, fill=False)
-        #                 ax.add_artist(circle)
-        #                 artists.append(circle)
         if self.render_delay:
             plt.pause(self.render_delay)
         else:
@@ -453,3 +437,19 @@ class CrowdSimCar(gym.Env):
 
     def render(self, mode='human'):
         self._render_frame(mode)
+
+
+def distance_from_line(x:float,y:float, path:list) -> float:
+    position = [x,y]
+    path = np.array(path)
+
+    if np.array_equal(position, path[0]):
+        return 0.0
+
+    a = position - path[0]
+    b = path[1] - path[0]
+    d = np.linalg.norm(a) * np.cos(np.arccos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    normal_point = path[0] + d * b / np.linalg.norm(b)
+    distance_to_path = np.linalg.norm(position - normal_point)
+    # print(f"Distance to path: {distance_to_path}")
+    return distance_to_path

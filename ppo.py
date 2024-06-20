@@ -461,5 +461,5 @@ class PPO:
 		self.writer.add_scalar('Average Episodic Length', avg_ep_lens, i_so_far)
 		self.writer.add_scalar('Average Episodic Return', avg_ep_rews, i_so_far)
 		self.writer.add_scalar('Average Actor Loss', avg_actor_loss, i_so_far)
-		self.writer.add_scalar('Timesteps So Far', t_so_far, i_so_far)
+		# self.writer.add_scalar('Timesteps So Far', t_so_far, i_so_far)
 		self.writer.add_scalar('Time Elapsed', delta_t, i_so_far)
