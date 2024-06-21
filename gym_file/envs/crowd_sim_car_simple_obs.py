@@ -55,6 +55,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
                            nb_forseen_goal=self.nb_forseen_goal,
                            is_visible=robot_is_visible,
                            radius=0.3,
+                           nb_goals=20,
                            )
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)

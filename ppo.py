@@ -174,7 +174,7 @@ class PPO:
 			# Log the training data to tensorboard
 			self._tensorboard_log(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
 
-			if avg_ep_rews > 300.0 and not self.chime_singletime:
+			if avg_ep_rews > 400.0 and not self.chime_singletime:
 				chime.success()
 				self.chime_singletime = True
 

@@ -72,6 +72,7 @@ def rollout(policy, env, render):
 			# Query deterministic action from policy and run it
 			action = policy(obs).detach().numpy()
 			obs, rew, done, _ = env.step(action)
+			env.calc_reward(save_in_file=True)
 
 			# logging.debug(f"{np.array(obs) = }")
 
@@ -101,6 +102,9 @@ def eval_policy(policy, env, render=False):
 
 		NOTE: To learn more about generators, look at rollout's function description
 	"""
+	# clear reward.csv file 
+	with open('reward.csv', 'w') as f:
+		f.write('')
 	# Rollout with the policy and environment, and log each episode's data
 	for ep_num, (ep_len, ep_ret) in enumerate(rollout(policy, env, render)):
 		_log_summary(ep_len=ep_len, ep_ret=ep_ret, ep_num=ep_num)

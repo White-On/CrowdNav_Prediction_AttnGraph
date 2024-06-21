@@ -233,6 +233,7 @@ class CrowdSimCar(gym.Env):
 
         return np.exp((distance_to_closest_human-dr)/dr)
 
+# OLD FORMULA
     # def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:
     #     if 0.0 < current_speed <= pref_speed:
     #         # l = 1/pref_speed # old formula
@@ -256,10 +257,11 @@ class CrowdSimCar(gym.Env):
 
     def compute_proximity_reward(self, distance_from_goal:float)->float:
         # TODO Careful with hard coded values
-        penalty_distance = 1
-        return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
+        # penalty_distance = 1
+        # return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
+        return 1 - 2 / (1 + np.exp((-distance_from_goal)))
 
-    def calc_reward(self)->tuple:
+    def calc_reward(self, save_in_file=False)->tuple:
         if len(Human.HUMAN_LIST) != 0:
             distance_from_human = self.robot.distance_from_other_agents([human.get_position() for human in Human.HUMAN_LIST])
 
@@ -284,9 +286,9 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 1
         near_collision_factor = 1
-        speed_factor = 4
+        speed_factor = 6
         angular_factor = 2
-        proximity_factor = 0
+        proximity_factor = 3
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -302,6 +304,10 @@ class CrowdSimCar(gym.Env):
                     📐 angular_reward: {angular_reward:>7.2f},\n\
                     🤏 proximity_reward: {proximity_reward:>7.2f},\n\
                     🏆 reward: {reward:>7.2f}')
+
+        if save_in_file:
+            with open('reward.csv', 'a') as f:
+                f.write(f'{collision_reward},{near_collision_reward},{speed_reward},{angular_reward},{proximity_reward},{reward}\n')
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
