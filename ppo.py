@@ -72,6 +72,7 @@ class PPO:
 		logging.debug(f"Policy Gradient Actor-Critic with PPO initialized. \nAll attributes: {self.__dict__.items()}")
 		# Initialize the Summary Writer
 		self.writer = SummaryWriter()
+		self.chime_singletime = False
 
 	def learn(self, total_timesteps):
 		"""
@@ -173,8 +174,9 @@ class PPO:
 			# Log the training data to tensorboard
 			self._tensorboard_log(avg_ep_lens, avg_ep_rews, avg_actor_loss, t_so_far, i_so_far, delta_t)
 
-			if avg_ep_rews > 0.0:
+			if avg_ep_rews > 300.0 and not self.chime_singletime:
 				chime.success()
+				self.chime_singletime = True
 
 			# Reset batch-specific logging data
 			self.logger['batch_lens'] = []

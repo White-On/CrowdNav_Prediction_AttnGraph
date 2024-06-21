@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import matplotlib.pyplot as plt
 
 """
 	This file is used only to evaluate our trained policy/actor after

@@ -296,7 +296,12 @@ class CrowdSimCar(gym.Env):
 
         reward = collision_reward + near_collision_reward + speed_reward + angular_reward + proximity_reward
 
-        logging.debug(f'💥collision_reward: {collision_reward:>7.2f}, 🚸 near_collision_reward: {near_collision_reward:>7.2f}, 🚀 speed_reward: {speed_reward:>7.2f}, 📐 angular_reward: {angular_reward:>7.2f}, 🤏 proximity_reward: {proximity_reward:>7.2f}, 🏆 reward: {reward:>7.2f}')
+        logging.debug(f'💥collision_reward: {collision_reward:>7.2f},\n\
+                    🚸 near_collision_reward: {near_collision_reward:>7.2f},\n\
+                    🚀 speed_reward: {speed_reward:>7.2f},\n\
+                    📐 angular_reward: {angular_reward:>7.2f},\n\
+                    🤏 proximity_reward: {proximity_reward:>7.2f},\n\
+                    🏆 reward: {reward:>7.2f}')
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
