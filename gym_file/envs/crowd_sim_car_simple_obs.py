@@ -2,9 +2,9 @@ import gym
 import gym.spaces
 import numpy as np
 
-from human import Human
-from robot import Robot
-from agent import Agent, AgentGroup
+from env_component.human import Human
+from env_component.robot import Robot
+from env_component.agent import Agent, AgentGroup
 import logging
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

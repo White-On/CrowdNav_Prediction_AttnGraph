@@ -22,7 +22,7 @@ def main():
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
         "CrowdSimCar-v0",
-        render_mode="human",
+        render_mode=None,
         episode_time=num_steps,
         nb_pedestrians=20,
         disable_env_checker=True,

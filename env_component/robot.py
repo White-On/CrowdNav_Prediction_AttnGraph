@@ -1,4 +1,4 @@
-from agent import Agent
+from .agent import Agent
 import numpy as np
 import logging
 
@@ -123,7 +123,7 @@ class Robot(Agent):
         acceleration_action = 0.0
         theta_action = self.get_angle_from_goal()
         # theta_action = np.pi/6
-        logging.info(np.degrees(theta_action))
+        # logging.info(np.degrees(theta_action))
         return [acceleration_action, theta_action]
 
     def get_current_visible_goal(self) -> list:

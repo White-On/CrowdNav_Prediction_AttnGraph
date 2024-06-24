@@ -1,6 +1,7 @@
-from human import Human
-from robot import Robot
-from agent import Agent, AgentGroup
+from env_component.human import Human
+from env_component.robot import Robot
+from env_component.agent import Agent, AgentGroup
+
 import matplotlib.pyplot as plt
 import numpy as np
 import logging
