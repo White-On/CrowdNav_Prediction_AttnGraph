@@ -6,11 +6,12 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-def logging_setup(log_file:str, level=logging.INFO):
+
+def logging_setup(log_file: str, level=logging.INFO):
     logger = logging.getLogger(__name__)
-	
+
     shell_handler = RichHandler()
-    file_handler = logging.FileHandler(log_file, mode='w')
+    file_handler = logging.FileHandler(log_file, mode="w")
 
     logger.setLevel(level)
     shell_handler.setLevel(level)
@@ -21,7 +22,6 @@ def logging_setup(log_file:str, level=logging.INFO):
         "%(levelname)s %(asctime)s [%(filename)s:%(funcName)s:%(lineno)s] %(message)s"
     )
 
-	
     shell_formatter = logging.Formatter(fmt_shell)
     file_formatter = logging.Formatter(fmt_file)
 
@@ -29,16 +29,26 @@ def logging_setup(log_file:str, level=logging.INFO):
     shell_handler.setFormatter(shell_formatter)
     file_handler.setFormatter(file_formatter)
 
-    logging.basicConfig(level=level, handlers=[shell_handler, file_handler],
-    					format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    logging.basicConfig(
+        level=level,
+        handlers=[shell_handler, file_handler],
+        format="%(asctime)s, %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-def display_config(config:Namespace, title="Configurations"):
+
+def display_config(config: Namespace, title="Configurations"):
     console = Console()
-    table = Table(title=title, box=box.ROUNDED, show_lines=True, header_style="bold cyan", )
+    table = Table(
+        title=title,
+        box=box.ROUNDED,
+        show_lines=True,
+        header_style="bold cyan",
+    )
     table.add_column("Key", style="bold blue", justify="left")
     table.add_column("Value", style="green")
 
     for key, value in config.__dict__.items():
         table.add_row(key, str(value))
-    
+
     console.print(table)
