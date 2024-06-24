@@ -86,6 +86,15 @@ class Robot(Agent):
         # print(f"Path: {path}")
         # print(f"Goal: {goals_coordinates}")
         return path.tolist()
+    
+    def reset(self) -> None:
+        self.coordinates = self.set_random_position()
+        self.speed = self.set_random_speed()
+        self.collection_goal_coordinates = self.set_random_goal()
+        self.path = self.create_path()
+        self.current_goal_cusor = 0
+        self.velocity_norm = np.linalg.norm(self.speed)
+        self.orientation = np.random.uniform(0, 2 * np.pi)
 
     def get_distance_from_path(self):
         position = self.get_position()
@@ -105,14 +114,7 @@ class Robot(Agent):
         # print(f"Distance to path: {distance_to_path}")
         return distance_to_path
 
-    def reset(self) -> None:
-        self.coordinates = self.set_random_position()
-        self.speed = self.set_random_speed()
-        self.collection_goal_coordinates = self.set_random_goal()
-        self.path = self.create_path()
-        self.current_goal_cusor = 0
-        self.velocity_norm = np.linalg.norm(self.speed)
-        self.orientation = np.random.uniform(0, 2 * np.pi)
+    
 
     def predict_what_to_do(self, *other_agent_state: list) -> list:
         speed_action = 1
@@ -121,7 +123,7 @@ class Robot(Agent):
         # logging.info(theta_action)
         return [speed_action, theta_action]
 
-    def get_current_visible_goal(self):
+    def get_current_visible_goal(self) -> list:
         goal_cursor_too_far = self.current_goal_cusor >= len(
             self.collection_goal_coordinates
         )
@@ -131,7 +133,7 @@ class Robot(Agent):
             self.current_goal_cusor : self.current_goal_cusor + self.nb_forseen_goal
         ]
 
-    def next_goal(self):
+    def next_goal(self) -> None:
         self.current_goal_cusor += 1
 
     def is_goal_reached(self, threashold) -> bool:
