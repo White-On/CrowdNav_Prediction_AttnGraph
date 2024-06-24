@@ -22,7 +22,7 @@ def main():
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
         "CrowdSimCar-v0",
-        render_mode=None,
+        render_mode="human",
         episode_time=num_steps,
         nb_pedestrians=20,
         disable_env_checker=True,
@@ -45,7 +45,7 @@ def main():
                 random_acceleration = np.random.uniform(-0.2, 0.2)
                 action[0] = random_acceleration
                 # action[1] = random_angle
-                
+
             obs, reward, done, info = env.step(action)
             env.render()
 

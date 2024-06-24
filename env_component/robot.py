@@ -22,7 +22,7 @@ class Robot(Agent):
         self.path = None
         self.current_goal_cusor = 0
         self.velocity_norm = None
-        self.speed_limit = [0.0, desired_speed*2]
+        self.speed_limit = [0.0, desired_speed * 2]
         self.acceleration_limits = [-0.5, 0.5]
         self.acceleration = [0.0, 0.0]
         self.robot_size = 0.3
@@ -89,7 +89,7 @@ class Robot(Agent):
         # print(f"Path: {path}")
         # print(f"Goal: {goals_coordinates}")
         return path.tolist()
-    
+
     def reset(self) -> None:
         self.coordinates = self.set_random_position()
         self.speed = self.set_random_speed()
@@ -99,7 +99,7 @@ class Robot(Agent):
         self.velocity_norm = np.linalg.norm(self.speed)
         self.orientation = np.random.uniform(0, 2 * np.pi)
 
-    def get_distance_from_path(self):
+    def get_distance_from_path(self) -> float:
         position = self.get_position()
         idx = self.current_goal_cusor
         path = np.array(self.path[idx]).reshape(2, 2)
@@ -116,8 +116,6 @@ class Robot(Agent):
         distance_to_path = np.linalg.norm(position - normal_point)
         # print(f"Distance to path: {distance_to_path}")
         return distance_to_path
-
-    
 
     def predict_what_to_do(self, *other_agent_state: list) -> list:
         acceleration_action = 0.0
@@ -159,7 +157,6 @@ class Robot(Agent):
         self.velocity_norm = np.linalg.norm(self.speed)
         self.orientation += self.compute_orientation()
         self.coordinates = self.compute_position()
-        
 
     def limit_theta_change(self, desired_theta: float) -> float:
         current_theta = self.theta
@@ -172,19 +169,26 @@ class Robot(Agent):
 
     def limit_acceleration_change(self, desired_acceleration: float) -> np.array:
         # same comment as the previous method
-        clipped_acceleration_norm = np.clip(desired_acceleration, self.acceleration_limits[0], self.acceleration_limits[1])
+        clipped_acceleration_norm = np.clip(
+            desired_acceleration,
+            self.acceleration_limits[0],
+            self.acceleration_limits[1],
+        )
         # we take the direction of the acceleration
-        vector_direction = np.array([np.cos(self.orientation), np.sin(self.orientation)])
+        vector_direction = np.array(
+            [np.cos(self.orientation), np.sin(self.orientation)]
+        )
         return clipped_acceleration_norm * vector_direction
-    
+
     def limit_speed(self, speed: np.array) -> list:
         # clip the speed norm between the speed limits
         speed_norm = np.linalg.norm(speed)
-        clipped_speed_norm = np.clip(speed_norm, self.speed_limit[0], self.speed_limit[1])
+        clipped_speed_norm = np.clip(
+            speed_norm, self.speed_limit[0], self.speed_limit[1]
+        )
         # we take the direction of the speed
         normalized_speed = speed / speed_norm
         return (clipped_speed_norm * normalized_speed).tolist()
-
 
     def compute_orientation(self) -> float:
         orientation = (
@@ -270,8 +274,13 @@ class Robot(Agent):
         ).tolist()
 
 
-def global_to_relative(global_coordinates, point_coordinates, point_orientation):
-    # Translate the global coordinates so the point is at the origin
+def global_to_relative(
+    global_coordinates, point_coordinates, point_orientation
+) -> np.array:
+    """
+    Translate the global coordinates so the point is at the origin
+    Rotate the translated coordinates by the negative of the point's orientation
+    """
     translated_coordinates = global_coordinates - point_coordinates
 
     # Rotate the translated coordinates by the negative of the point's orientation
