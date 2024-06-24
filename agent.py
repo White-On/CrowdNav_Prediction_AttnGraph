@@ -25,8 +25,8 @@ class Agent(object):
         self.radius = radius
         self.FOV = np.pi * FOV
         self.coordinates = [None, None]
-        self.speed = [None, None]
-        self.orientation = None
+        self.speed = [0, 0]
+        self.orientation = 0
         self.delta_t = delta_t
         self.arena_size = kwargs.get("arena_size", 5)
         self.other_attribute = kwargs

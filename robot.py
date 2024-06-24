@@ -22,10 +22,13 @@ class Robot(Agent):
         self.path = None
         self.current_goal_cusor = 0
         self.velocity_norm = None
-        self.acceleration_limits = [0.5, 2.0]
+        self.speed_limit = [0.0, desired_speed*2]
+        self.acceleration_limits = [-0.5, 0.5]
+        self.acceleration = [0.0, 0.0]
         self.robot_size = 0.3
         self.orientation = 0
         self.theta = 0
+        self.theta_acceleration = 0
         self.nb_forseen_goal = nb_forseen_goal
 
     def __str__(self) -> str:
@@ -117,11 +120,11 @@ class Robot(Agent):
     
 
     def predict_what_to_do(self, *other_agent_state: list) -> list:
-        speed_action = 1
+        acceleration_action = 0.0
         theta_action = self.get_angle_from_goal()
         # theta_action = np.pi/6
-        # logging.info(theta_action)
-        return [speed_action, theta_action]
+        logging.info(np.degrees(theta_action))
+        return [acceleration_action, theta_action]
 
     def get_current_visible_goal(self) -> list:
         goal_cursor_too_far = self.current_goal_cusor >= len(
@@ -147,32 +150,41 @@ class Robot(Agent):
         )
 
     def step(self, action: list) -> None:
-        """Action is a list with the speed vector norm and wheel orientation theta"""
-        desired_speed, desired_theta = action
+        """Action is a list with the acceleration and wheel orientation theta"""
+        desired_acceleration, desired_theta = action
         self.theta = self.limit_theta_change(desired_theta)
-        self.velocity_norm = self.limit_velocity_norm_change(desired_speed)
+        self.acceleration = self.limit_acceleration_change(desired_acceleration)
+        self.speed += self.acceleration
+        self.speed = self.limit_speed(self.speed)
+        self.velocity_norm = np.linalg.norm(self.speed)
         self.orientation += self.compute_orientation()
         self.coordinates = self.compute_position()
-        self.speed = self.compute_speed_vector()
-        # we need to compute the speed vector somewhere
+        
 
     def limit_theta_change(self, desired_theta: float) -> float:
-        # clip the value of theta between 50% of the current theta value
-        # and adjust that % with the rotation speed of the robot
         current_theta = self.theta
-        rad_change_limit = np.pi / 6
+        rad_change_limit = np.pi / 32
 
         lower_limit = current_theta - rad_change_limit
         upper_limit = current_theta + rad_change_limit
 
         return np.clip(desired_theta, lower_limit, upper_limit)
 
-    def limit_velocity_norm_change(self, desired_velocity_norm: float) -> float:
+    def limit_acceleration_change(self, desired_acceleration: float) -> np.array:
         # same comment as the previous method
-        current_velocity_norm = self.velocity_norm
-        lower_limit = current_velocity_norm - self.acceleration_limits[1]
-        upper_limit = current_velocity_norm + self.acceleration_limits[1]
-        return np.clip(desired_velocity_norm, lower_limit, upper_limit)
+        clipped_acceleration_norm = np.clip(desired_acceleration, self.acceleration_limits[0], self.acceleration_limits[1])
+        # we take the direction of the acceleration
+        vector_direction = np.array([np.cos(self.orientation), np.sin(self.orientation)])
+        return clipped_acceleration_norm * vector_direction
+    
+    def limit_speed(self, speed: np.array) -> list:
+        # clip the speed norm between the speed limits
+        speed_norm = np.linalg.norm(speed)
+        clipped_speed_norm = np.clip(speed_norm, self.speed_limit[0], self.speed_limit[1])
+        # we take the direction of the speed
+        normalized_speed = speed / speed_norm
+        return (clipped_speed_norm * normalized_speed).tolist()
+
 
     def compute_orientation(self) -> float:
         orientation = (

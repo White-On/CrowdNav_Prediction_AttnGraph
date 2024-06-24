@@ -16,7 +16,7 @@ def main():
     logging_setup(log_file)
 
     num_steps = 500
-    random_behavior = False
+    random_behavior = True
     num_episodes = 1
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
@@ -42,7 +42,10 @@ def main():
             action = env.robot.predict_what_to_do()
             if random_behavior:
                 random_angle = np.random.uniform(-np.pi / 6, np.pi / 6)
-                action = [1, random_angle]
+                random_acceleration = np.random.uniform(-0.2, 0.2)
+                action[0] = random_acceleration
+                # action[1] = random_angle
+                
             obs, reward, done, info = env.step(action)
             env.render()
 
@@ -50,9 +53,9 @@ def main():
                 obs = np.array(obs)
 
             # logging.info(f"{obs.shape = }")
-            logging.info(
-                f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
-            )
+            # logging.info(
+            #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
+            # )
             if done:
                 logging.info(
                     f"Episode {episode+1} finished at step {step+1}, status: {info}"
