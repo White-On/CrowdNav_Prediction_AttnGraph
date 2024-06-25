@@ -56,7 +56,7 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
-        self.goal_threshold_distance = 0.1
+        self.goal_threshold_distance = self.robot.radius
 
         sensor_range = 4
         self.robot = Robot(
