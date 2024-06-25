@@ -42,7 +42,7 @@ def main():
             action = env.robot.predict_what_to_do()
             if random_behavior:
                 random_angle = np.random.uniform(-np.pi / 6, np.pi / 6)
-                random_acceleration = np.random.uniform(-0.2, 0.2)
+                # random_acceleration = np.random.uniform(-0.2, 0.2)
                 random_acceleration = -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
                 action[0] = random_acceleration
                 # action[1] = random_angle
@@ -54,9 +54,9 @@ def main():
                 obs = np.array(obs)
 
             # logging.info(f"{obs.shape = }")
-            # logging.info(
-            #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
-            # )
+            logging.info(
+                f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
+            )
             if done:
                 logging.info(
                     f"Episode {episode+1} finished at step {step+1}, status: {info}"

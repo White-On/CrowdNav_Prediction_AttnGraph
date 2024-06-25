@@ -2,7 +2,7 @@ from .agent import Agent
 import numpy as np
 import logging
 
-
+# TODO: La marche arrière ne fonctionne pas !
 class Robot(Agent):
     def __init__(
         self,
@@ -22,7 +22,7 @@ class Robot(Agent):
         self.path = None
         self.current_goal_cusor = 0
         self.velocity_norm = None
-        self.speed_limit = [0.0, desired_speed * 2]
+        self.speed_norm_limit = [0.0, self.desired_speed*2]
         self.acceleration_limits = [-0.5, 0.5]
         self.acceleration = [0.0, 0.0]
         self.robot_size = 0.3
@@ -170,8 +170,10 @@ class Robot(Agent):
     def limit_speed(self, speed: np.array) -> list:
         # clip the speed norm between the speed limits
         speed_norm = np.linalg.norm(speed)
+        if speed_norm == 0:
+            return speed.tolist()
         clipped_speed_norm = np.clip(
-            speed_norm, self.speed_limit[0], self.speed_limit[1]
+            speed_norm, a_min=self.speed_norm_limit[0], a_max=self.speed_norm_limit[1]
         )
         # we take the direction of the speed
         normalized_speed = speed / speed_norm
@@ -193,6 +195,7 @@ class Robot(Agent):
             + self.coordinates[1]
         )
         return [x, y]
+        # return (self.coordinates + np.array(self.speed) * self.delta_t).tolist()
 
         # self.x += v * np.cos(self.theta) * dt
         # self.y += v * np.sin(self.theta) * dt

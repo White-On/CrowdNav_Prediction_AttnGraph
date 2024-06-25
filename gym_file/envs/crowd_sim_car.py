@@ -111,8 +111,9 @@ class CrowdSimCar(gym.Env):
 
     def define_action_space(self) -> gym.spaces.Box:
         # vehicle_speed_boundries = [-0.5, 2]
+        vehicle_speed_boundries = [-0.2, 0.2]
         # TODO put back the ability to drive backward
-        vehicle_speed_boundries = [0.0, 2.0]
+        # vehicle_speed_boundries = [0.0, 2.0]
         # True limit angle is 14 degrees but for now we will use 30 degrees
         # limit_angle = np.deg2rad(14)
         limit_angle = np.pi / 6
@@ -518,18 +519,29 @@ class CrowdSimCar(gym.Env):
             velocity_toward_goal = np.array(
                 self.robot.get_current_visible_goal()[0]
             ) - np.array(self.robot.coordinates)
-            normalized_velocity = velocity_toward_goal / np.linalg.norm(
+            normalized_velocity_toward_goal = velocity_toward_goal / np.linalg.norm(
                 velocity_toward_goal
             )
             ax.arrow(
                 x=self.robot.coordinates[0],
                 y=self.robot.coordinates[1],
-                dx=normalized_velocity[0],
-                dy=normalized_velocity[1],
+                dx=normalized_velocity_toward_goal[0],
+                dy=normalized_velocity_toward_goal[1],
                 head_width=0.1,
                 head_length=0.1,
                 fc=robot_goal_color,
                 ec=robot_goal_color,
+            )
+
+            ax.arrow(
+                x=self.robot.coordinates[0],
+                y=self.robot.coordinates[1],
+                dx=self.robot.acceleration[0],
+                dy=self.robot.acceleration[1],
+                head_width=0.1,
+                head_length=0.1,
+                fc="r",
+                ec="r",
             )
 
         # draw FOV for the robot
@@ -584,14 +596,14 @@ class CrowdSimCar(gym.Env):
                 velocity_toward_goal = np.array(human.goal_coordinates) - np.array(
                     human.coordinates
                 )
-                normalized_velocity = velocity_toward_goal / np.linalg.norm(
+                normalized_velocity_toward_goal = velocity_toward_goal / np.linalg.norm(
                     velocity_toward_goal
                 )
                 ax.arrow(
                     x=human.coordinates[0],
                     y=human.coordinates[1],
-                    dx=normalized_velocity[0],
-                    dy=normalized_velocity[1],
+                    dx=normalized_velocity_toward_goal[0],
+                    dy=normalized_velocity_toward_goal[1],
                     head_width=0.1,
                     head_length=0.1,
                     fc=human_goal_color,
