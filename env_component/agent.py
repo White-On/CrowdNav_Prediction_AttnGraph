@@ -86,24 +86,18 @@ class Agent(object):
         Perform an action and update the state
         """
         return
+    
+    def set_random_position(self, position_limit:float) -> None:
+        return [
+            np.random.uniform(-position_limit, position_limit),
+            np.random.uniform(-position_limit, position_limit),
+        ]
 
-    # def one_step_lookahead(self, pos, action):
-    #     px, py = pos
-    #     # self.check_validity(action)
-    #     new_px = px + action.vx * self.delta_t
-    #     new_py = py + action.vy * self.delta_t
-    #     new_vx = action.vx
-    #     new_vy = action.vy
-    #     return [new_px, new_py, new_vx, new_vy]
-
-    # def get_future_traj(self, horizon):
-    #     future_traj = []
-    #     pos = self.get_position()
-    #     for i in range(horizon):
-    #         action = self.policy.act(None)
-    #         pos = self.one_step_lookahead(pos, action)
-    #         future_traj.append(pos)
-    #     return future_traj
+    def set_random_speed(self, speed_limit) -> None:
+        return [
+            np.random.uniform(-speed_limit, speed_limit),
+            np.random.uniform(-speed_limit, speed_limit),
+        ]
 
 
 class AgentGroup:

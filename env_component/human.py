@@ -41,19 +41,6 @@ class Human(Agent):
         computed_position = self.coordinates + np.array(action) * self.delta_t
         return computed_position.tolist()
 
-    def set_random_position(self) -> list:
-        position_limit = self.arena_size
-        return [
-            np.random.uniform(-position_limit, position_limit),
-            np.random.uniform(-position_limit, position_limit),
-        ]
-
-    def set_random_speed(self) -> list:
-        return [
-            np.random.uniform(-self.desired_speed, self.desired_speed),
-            np.random.uniform(-self.desired_speed, self.desired_speed),
-        ]
-
     def set_random_goal(self) -> list:
         goal_coordinate_limit = self.arena_size
         return [
@@ -130,6 +117,6 @@ class Human(Agent):
         )
 
     def reset(self) -> None:
-        self.coordinates = self.set_random_position()
-        self.speed = self.set_random_speed()
+        self.coordinates = self.set_random_position(position_limit=self.arena_size)
+        self.speed = self.set_random_speed(speed_limit=self.desired_speed)
         self.goal_coordinates = self.set_random_goal()

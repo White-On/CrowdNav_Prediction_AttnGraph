@@ -43,6 +43,7 @@ def main():
             if random_behavior:
                 random_angle = np.random.uniform(-np.pi / 6, np.pi / 6)
                 random_acceleration = np.random.uniform(-0.2, 0.2)
+                random_acceleration = -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
                 action[0] = random_acceleration
                 # action[1] = random_angle
 

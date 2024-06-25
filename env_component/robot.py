@@ -37,19 +37,6 @@ class Robot(Agent):
     def __repr__(self) -> str:
         return self.__str__()
 
-    def set_random_position(self) -> None:
-        position_limit = self.arena_size
-        return [
-            np.random.uniform(-position_limit, position_limit),
-            np.random.uniform(-position_limit, position_limit),
-        ]
-
-    def set_random_speed(self) -> None:
-        return [
-            np.random.uniform(-self.desired_speed, self.desired_speed),
-            np.random.uniform(-self.desired_speed, self.desired_speed),
-        ]
-
     def set_random_goal(self) -> None:
         goal_coordinate_limit = self.arena_size
         return [
@@ -91,8 +78,8 @@ class Robot(Agent):
         return path.tolist()
 
     def reset(self) -> None:
-        self.coordinates = self.set_random_position()
-        self.speed = self.set_random_speed()
+        self.coordinates = self.set_random_position(position_limit=self.arena_size)
+        self.speed = self.set_random_speed(speed_limit=self.desired_speed)
         self.collection_goal_coordinates = self.set_random_goal()
         self.path = self.create_path()
         self.current_goal_cusor = 0
