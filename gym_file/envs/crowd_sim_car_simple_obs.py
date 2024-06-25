@@ -15,9 +15,7 @@ from rich import print
 
 class CrowdSimCarSimpleObs(CrowdSimCar):
     """
-    Same as CrowdSimPred, except that
-    The future human traj in 'spatial_edges' are dummy placeholders
-    and will be replaced by the outputs of a real GST pred model in the wrapper function in vec_pretext_normalize.py
+    Environment for the crowd simulation with a robot and pedestrians.
     """
 
     metadata = {"render_modes": ["human", "debug", None]}

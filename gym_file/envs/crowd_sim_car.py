@@ -14,9 +14,7 @@ from rich import print
 
 class CrowdSimCar(gym.Env):
     """
-    Same as CrowdSimPred, except that
-    The future human traj in 'spatial_edges' are dummy placeholders
-    and will be replaced by the outputs of a real GST pred model in the wrapper function in vec_pretext_normalize.py
+    Environment for crowd simulation with a robot and pedestrians
     """
 
     metadata = {"render_modes": ["human", "debug", None]}
@@ -56,7 +54,7 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
-        self.goal_threshold_distance = 0.1
+        self.goal_threshold_distance = self.robot.radius
 
         sensor_range = 4
         self.robot = Robot(
