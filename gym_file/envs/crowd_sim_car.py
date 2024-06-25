@@ -14,9 +14,7 @@ from rich import print
 
 class CrowdSimCar(gym.Env):
     """
-    Same as CrowdSimPred, except that
-    The future human traj in 'spatial_edges' are dummy placeholders
-    and will be replaced by the outputs of a real GST pred model in the wrapper function in vec_pretext_normalize.py
+    Environment for the crowd simulation with a robot and pedestrians
     """
 
     metadata = {"render_modes": ["human", "debug", None]}
@@ -30,7 +28,7 @@ class CrowdSimCar(gym.Env):
         time_step=0.1,
         display_future_trajectory=True,
         robot_is_visible=False,
-    ):
+    ):            
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
             logging.error(f"Mode {render_mode} is not supported")

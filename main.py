@@ -132,12 +132,12 @@ def main(args):
     if args.mode == "train":
         logging_setup("PPO_experimentation.log")
     else:
-        logging_setup("PPO_evaluation.log", level=logging.DEBUG)
+        logging_setup("PPO_evaluation.log", level=logging.INFO)
     env = gym.make(
         "CrowdSimCar-v1",
         render_mode="human",
         episode_time=hyperparameters["max_timesteps_per_episode"],
-        nb_pedestrians=0,
+        nb_pedestrians=10,
         disable_env_checker=True,
     )
 
