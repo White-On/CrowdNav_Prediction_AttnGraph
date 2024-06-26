@@ -9,8 +9,6 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-from rich import print
-
 
 class CrowdSimCar(gym.Env):
     """
@@ -54,7 +52,7 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
-        self.goal_threshold_distance = self.robot.radius
+        
 
         sensor_range = 4
         self.robot = Robot(
@@ -66,8 +64,11 @@ class CrowdSimCar(gym.Env):
             radius=0.3,
             nb_goals=5,
         )
+        
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
+
+        self.goal_threshold_distance = self.robot.radius
 
         self.observation_space = self.define_observations_space(
             self.robot.nb_forseen_goal,
@@ -164,7 +165,13 @@ class CrowdSimCar(gym.Env):
 
         # apply action and update all agents
         agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
+        # TODO optimize this part to avoid double computation
 
+        # all_agent_coordinates = np.array(agent_visible.apply(lambda x: x.coordinates))
+        # matrix_distance_from_each_other = np.linalg.norm(all_agent_coordinates[:, None] - all_agent_coordinates, axis=2) 
+        # all_sensor_range = np.array(agent_visible.apply(lambda x: x.sensor_range))
+        # can_see_each_other = matrix_distance_from_each_other < all_sensor_range[:, None] + all_sensor_range
+        
         # Human step
         for human in Human.HUMAN_LIST:
             other_agent_state = (
@@ -172,6 +179,11 @@ class CrowdSimCar(gym.Env):
                 .filter(human.can_i_see)
                 .apply(lambda x: x.coordinates + x.speed)
             )
+            # other_agent_state = (
+            #     agent_visible.filter(lambda x: x.id != human.id)
+            #     .filter(lambda x: can_see_each_other[human.id][x.id])
+            #     .apply(lambda x: x.coordinates + x.speed)
+            # )
             # predict what to do
             human_action = human.predict_what_to_do(*other_agent_state)
             human.step(human_action)
@@ -246,7 +258,6 @@ class CrowdSimCar(gym.Env):
         # robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
         # observation['graph_features'][-1] = robot_future_traj
         observation["graph_features"] = observation["graph_features"] - robot_position
-        # TODO fix the relative coordinate to true relativein ref to the robot
         observation["graph_features"] = observation["graph_features"].reshape(
             nb_humans_in_simulation, -1
         )

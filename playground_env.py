@@ -2,8 +2,6 @@ from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 from logger import logging_setup
 
-from rich import print
-import matplotlib.pyplot as plt
 import logging
 import pandas as pd
 import numpy as np
@@ -22,7 +20,7 @@ def main():
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
         "CrowdSimCar-v0",
-        render_mode="human",
+        render_mode=None,
         episode_time=num_steps,
         nb_pedestrians=20,
         disable_env_checker=True,
@@ -54,13 +52,13 @@ def main():
                 obs = np.array(obs)
 
             # logging.info(f"{obs.shape = }")
-            logging.info(
-                f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
-            )
+            # logging.info(
+            #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
+            # )
             if done:
-                logging.info(
-                    f"Episode {episode+1} finished at step {step+1}, status: {info}"
-                )
+                # logging.info(
+                #     f"Episode {episode+1} finished at step {step+1}, status: {info}"
+                # )
                 if save:
                     log_results_episodes["episode"].append(episode)
                     log_results_episodes["status"].append(info.__class__.__name__)

@@ -7,7 +7,6 @@ from env_component.robot import Robot
 from env_component.agent import Agent, AgentGroup
 import logging
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 
 from rich import print

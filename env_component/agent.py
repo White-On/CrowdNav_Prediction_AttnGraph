@@ -54,9 +54,9 @@ class Agent(object):
         return distance.tolist()
 
     def can_i_see(self, other_agent: "Agent") -> bool:
-        other_agent_position = other_agent.coordinates
-        distance = np.linalg.norm(np.array(other_agent_position) - self.coordinates)
-        return distance < self.sensor_range
+        diff = np.array(other_agent.coordinates) - np.array(self.coordinates)
+        distance_squared = np.dot(diff, diff)
+        return distance_squared < self.sensor_range ** 2
 
     def get_position(self) -> list:
         return self.coordinates
