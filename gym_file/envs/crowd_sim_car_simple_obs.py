@@ -138,23 +138,17 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
             observation["graph_features"][i] = human_future_traj
 
         # transform the graph features into relative coordinates
-        # TODO/WARNING: Giving the robot relative position to the robot itself
+        # TODO/WARNING: Giving the robot relative position of the robot itself
         # does not make sense
         robot_position = np.array(self.robot.get_position())
+        robot_rotation = self.robot.orientation
         # add robot future traj
         # robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
         # observation['graph_features'][-1] = robot_future_traj
-        observation["graph_features"] = observation["graph_features"] - robot_position
-        robot_rotation = self.robot.orientation
-        # Rotate the translated coordinates by the negative of the point's orientation
-        rotation_matrix = np.array(
-            [
-                [np.cos(-robot_rotation), -np.sin(-robot_rotation)],
-                [np.sin(-robot_rotation), np.cos(-robot_rotation)],
-            ]
-        )
-        observation["graph_features"] = np.dot(
-            observation["graph_features"], rotation_matrix.T
+
+        # observation["graph_features"] = observation["graph_features"] - robot_position
+        observation["graph_features"] = self.global_to_relative(
+            observation["graph_features"].reshape(-1,2), robot_position, robot_rotation
         )
         observation["graph_features"] = observation["graph_features"].reshape(
             nb_humans_in_simulation, -1

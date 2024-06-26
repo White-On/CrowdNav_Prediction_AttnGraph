@@ -56,7 +56,7 @@ class Agent(object):
     def can_i_see(self, other_agent: "Agent") -> bool:
         diff = np.array(other_agent.coordinates) - np.array(self.coordinates)
         distance_squared = np.dot(diff, diff)
-        return distance_squared < self.sensor_range ** 2
+        return distance_squared < self.sensor_range**2
 
     def get_position(self) -> list:
         return self.coordinates
@@ -86,8 +86,8 @@ class Agent(object):
         Perform an action and update the state
         """
         return
-    
-    def set_random_position(self, position_limit:float) -> None:
+
+    def set_random_position(self, position_limit: float) -> None:
         return [
             np.random.uniform(-position_limit, position_limit),
             np.random.uniform(-position_limit, position_limit),

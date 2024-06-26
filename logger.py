@@ -2,6 +2,7 @@ import logging
 
 from rich.logging import RichHandler
 
+
 def logging_setup(log_file: str, level=logging.INFO):
     logger = logging.getLogger(__name__)
 

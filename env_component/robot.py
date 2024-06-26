@@ -2,6 +2,7 @@ from .agent import Agent
 import numpy as np
 import logging
 
+
 # TODO: La marche arrière ne fonctionne pas !
 class Robot(Agent):
     def __init__(
@@ -22,7 +23,7 @@ class Robot(Agent):
         self.path = None
         self.current_goal_cusor = 0
         self.velocity_norm = None
-        self.speed_norm_limit = [0.0, self.desired_speed*2]
+        self.speed_norm_limit = [0.0, self.desired_speed * 2]
         self.acceleration_limits = [-0.5, 0.5]
         self.acceleration = [0.0, 0.0]
         self.robot_size = 0.3

@@ -26,7 +26,7 @@ class CrowdSimCar(gym.Env):
         time_step=0.1,
         display_future_trajectory=True,
         robot_is_visible=False,
-    ):            
+    ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
             logging.error(f"Mode {render_mode} is not supported")
@@ -52,7 +52,6 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
-        
 
         sensor_range = 4
         self.robot = Robot(
@@ -64,7 +63,7 @@ class CrowdSimCar(gym.Env):
             radius=0.3,
             nb_goals=5,
         )
-        
+
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 
@@ -168,10 +167,10 @@ class CrowdSimCar(gym.Env):
         # TODO optimize this part to avoid double computation
 
         # all_agent_coordinates = np.array(agent_visible.apply(lambda x: x.coordinates))
-        # matrix_distance_from_each_other = np.linalg.norm(all_agent_coordinates[:, None] - all_agent_coordinates, axis=2) 
+        # matrix_distance_from_each_other = np.linalg.norm(all_agent_coordinates[:, None] - all_agent_coordinates, axis=2)
         # all_sensor_range = np.array(agent_visible.apply(lambda x: x.sensor_range))
         # can_see_each_other = matrix_distance_from_each_other < all_sensor_range[:, None] + all_sensor_range
-        
+
         # Human step
         for human in Human.HUMAN_LIST:
             other_agent_state = (
@@ -254,10 +253,15 @@ class CrowdSimCar(gym.Env):
         # TODO/WARNING: Giving the robot relative position of the robot itself
         # does not make sense
         robot_position = np.array(self.robot.get_position())
+        robot_rotation = self.robot.orientation
         # add robot future traj
         # robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
         # observation['graph_features'][-1] = robot_future_traj
-        observation["graph_features"] = observation["graph_features"] - robot_position
+
+        # observation["graph_features"] = observation["graph_features"] - robot_position
+        observation["graph_features"] = self.global_to_relative(
+            observation["graph_features"].reshape(-1,2), robot_position, robot_rotation
+        )
         observation["graph_features"] = observation["graph_features"].reshape(
             nb_humans_in_simulation, -1
         )
@@ -625,19 +629,33 @@ class CrowdSimCar(gym.Env):
             visible_masks = observation["visible_masks"]
             # we remove the predicted positions with the visibility mask
             predicted_positions = predicted_positions[visible_masks]
-            for human_future_traj in predicted_positions:
-                human_future_traj = human_future_traj.reshape(-1, 2)
-                human_future_traj = human_future_traj + np.array([robotX, robotY])
-                ax.plot(
-                    human_future_traj[:, 0],
-                    human_future_traj[:, 1],
-                    color="tab:orange",
-                    marker="o",
-                    markersize=human_visual_radius,
-                    label="Human Future Traj",
-                    alpha=0.5,
-                    linestyle="--",
-                )
+            predicted_positions_global_rep =  self.relative_to_global(
+                predicted_positions.reshape(-1, 2), [robotX, robotY], self.robot.orientation
+            )
+            # just keept this code for fun vizualisation
+
+            # for human_future_traj in predicted_positions:
+            #     human_future_traj = human_future_traj.reshape(-1, 2)
+            #     human_future_traj = human_future_traj + np.array([robotX, robotY])
+            #     ax.plot(
+            #         human_future_traj[:, 0],
+            #         human_future_traj[:, 1],
+            #         color="tab:orange",
+            #         marker="o",
+            #         markersize=human_visual_radius,
+            #         label="Human Future Traj",
+            #         alpha=0.5,
+            #         linestyle="--",
+            #     )
+            ax.scatter(
+                predicted_positions_global_rep[:, 0],
+                predicted_positions_global_rep[:, 1],
+                color="tab:orange",
+                marker="o",
+                s=human_visual_radius*3,
+                label="Human Future Traj",
+                alpha=0.5,
+            )
 
         # plot reward space for experiment
         # x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
@@ -653,6 +671,47 @@ class CrowdSimCar(gym.Env):
         if self.render_mode == None:
             return
         self._render_frame()
+    
+    @staticmethod
+    def global_to_relative(
+        global_coordinates, point_coordinates, point_orientation
+    ) -> np.array:
+        """
+        Translate the global coordinates so the point is at the origin
+        Rotate the translated coordinates by the negative of the point's orientation
+        """
+        translated_coordinates = global_coordinates - point_coordinates
+
+        # Rotate the translated coordinates by the negative of the point's orientation
+        rotation_matrix = np.array(
+            [
+                [np.cos(-point_orientation), -np.sin(-point_orientation)],
+                [np.sin(-point_orientation), np.cos(-point_orientation)],
+            ]
+        )
+        relative_coordinates = np.dot(translated_coordinates, rotation_matrix)
+
+        return relative_coordinates
+    
+    @staticmethod
+    def relative_to_global(
+        relative_coordinates, point_coordinates, point_orientation
+    ) -> np.array:
+        """
+        Rotate the relative coordinates by the point's orientation
+        Translate the rotated coordinates so the point is at the origin
+        """
+        rotation_matrix = np.array(
+            [
+                [np.cos(point_orientation), -np.sin(point_orientation)],
+                [np.sin(point_orientation), np.cos(point_orientation)],
+            ]
+        )
+        rotated_coordinates = np.dot(relative_coordinates, rotation_matrix)
+
+        global_coordinates = rotated_coordinates + point_coordinates
+
+        return global_coordinates
 
 
 def distance_from_line(x: float, y: float, path: list) -> float:
@@ -671,3 +730,5 @@ def distance_from_line(x: float, y: float, path: list) -> float:
     distance_to_path = np.linalg.norm(position - normal_point)
     # print(f"Distance to path: {distance_to_path}")
     return distance_to_path
+
+    

@@ -137,7 +137,7 @@ def main(args):
         "CrowdSimCar-v1",
         render_mode="human",
         episode_time=hyperparameters["max_timesteps_per_episode"],
-        nb_pedestrians=10,
+        nb_pedestrians=20,
         disable_env_checker=True,
     )
 
