@@ -76,6 +76,9 @@ class CrowdSimCar(gym.Env):
         )
         self.action_space = self.define_action_space()
         self.all_agent_group = AgentGroup(*Agent.ENTITIES)
+        self.distance_matrix = None
+        # we do the hypothesis that no agent can change sensor range during the simulation
+        self.all_sensor_range = np.array(self.all_agent_group.apply(lambda x: x.sensor_range))
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
@@ -142,6 +145,8 @@ class CrowdSimCar(gym.Env):
                     [human.get_position() for human in Human.HUMAN_LIST]
                 )
 
+        # compute distance_matrix 
+        self.distance_matrix = self.compute_distance_matrix()
         # get robot observation
         observation_after_reset = self.generate_observation()
 
@@ -170,19 +175,20 @@ class CrowdSimCar(gym.Env):
         # matrix_distance_from_each_other = np.linalg.norm(all_agent_coordinates[:, None] - all_agent_coordinates, axis=2)
         # all_sensor_range = np.array(agent_visible.apply(lambda x: x.sensor_range))
         # can_see_each_other = matrix_distance_from_each_other < all_sensor_range[:, None] + all_sensor_range
-
+        self.distance_matrix = self.compute_distance_matrix()
+        can_see_each_other = self.distance_matrix < self.all_sensor_range
         # Human step
         for human in Human.HUMAN_LIST:
-            other_agent_state = (
-                agent_visible.filter(lambda x: x.id != human.id)
-                .filter(human.can_i_see)
-                .apply(lambda x: x.coordinates + x.speed)
-            )
             # other_agent_state = (
             #     agent_visible.filter(lambda x: x.id != human.id)
-            #     .filter(lambda x: can_see_each_other[human.id][x.id])
+            #     .filter(human.can_i_see)
             #     .apply(lambda x: x.coordinates + x.speed)
             # )
+            other_agent_state = (
+                agent_visible.filter(lambda x: x.id != human.id)
+                .filter(lambda x: can_see_each_other[human.id][x.id])
+                .apply(lambda x: x.coordinates + x.speed)
+            )
             # predict what to do
             human_action = human.predict_what_to_do(*other_agent_state)
             human.step(human_action)
@@ -251,7 +257,7 @@ class CrowdSimCar(gym.Env):
 
         # transform the graph features into relative coordinates
         # TODO/WARNING: Giving the robot relative position of the robot itself
-        # does not make sense
+        # does not make sense will be 0 0 everytime
         robot_position = np.array(self.robot.get_position())
         robot_rotation = self.robot.orientation
         # add robot future traj
@@ -656,6 +662,24 @@ class CrowdSimCar(gym.Env):
                 label="Human Future Traj",
                 alpha=0.5,
             )
+        if self.render_mode == "debug":
+            can_see_each_other = self.distance_matrix < self.all_sensor_range
+            for agent in Agent.ENTITIES:
+                other_agent_state = (
+                    self.all_agent_group.filter(lambda x: x.id != agent.id)
+                    .filter(lambda x: can_see_each_other[agent.id][x.id])
+                    .apply(lambda x: x.id)
+                )
+                # draw a line between the agent and the other agent
+                for other_agent_id in other_agent_state:
+                    ax.plot(
+                        [agent.coordinates[0], Agent.ENTITIES[other_agent_id].coordinates[0]],
+                        [agent.coordinates[1], Agent.ENTITIES[other_agent_id].coordinates[1]],
+                        color="black",
+                        linestyle="--",
+                        linewidth=0.5,
+                    )
+
 
         # plot reward space for experiment
         # x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
@@ -712,6 +736,19 @@ class CrowdSimCar(gym.Env):
         global_coordinates = rotated_coordinates + point_coordinates
 
         return global_coordinates
+    
+    def compute_distance_matrix(self):
+        """
+        Compute the distance matrix between all agents
+        """
+        all_agent_coordinates = np.array(
+            self.all_agent_group.apply(lambda x: x.coordinates)
+        )
+        # TODO maybe change linalg.norm to something else like square distance
+        matrix_distance_from_each_other = np.linalg.norm(
+            all_agent_coordinates[:, None] - all_agent_coordinates, axis=2
+        )
+        return matrix_distance_from_each_other
 
 
 def distance_from_line(x: float, y: float, path: list) -> float:
