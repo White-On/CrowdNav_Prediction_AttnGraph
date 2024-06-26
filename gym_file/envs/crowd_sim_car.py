@@ -78,7 +78,9 @@ class CrowdSimCar(gym.Env):
         self.all_agent_group = AgentGroup(*Agent.ENTITIES)
         self.distance_matrix = None
         # we do the hypothesis that no agent can change sensor range during the simulation
-        self.all_sensor_range = np.array(self.all_agent_group.apply(lambda x: x.sensor_range))
+        self.all_sensor_range = np.array(
+            self.all_agent_group.apply(lambda x: x.sensor_range)
+        )
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
@@ -145,7 +147,7 @@ class CrowdSimCar(gym.Env):
                     [human.get_position() for human in Human.HUMAN_LIST]
                 )
 
-        # compute distance_matrix 
+        # compute distance_matrix
         self.distance_matrix = self.compute_distance_matrix()
         # get robot observation
         observation_after_reset = self.generate_observation()
@@ -266,7 +268,7 @@ class CrowdSimCar(gym.Env):
 
         # observation["graph_features"] = observation["graph_features"] - robot_position
         observation["graph_features"] = self.global_to_relative(
-            observation["graph_features"].reshape(-1,2), robot_position, robot_rotation
+            observation["graph_features"].reshape(-1, 2), robot_position, robot_rotation
         )
         observation["graph_features"] = observation["graph_features"].reshape(
             nb_humans_in_simulation, -1
@@ -635,8 +637,10 @@ class CrowdSimCar(gym.Env):
             visible_masks = observation["visible_masks"]
             # we remove the predicted positions with the visibility mask
             predicted_positions = predicted_positions[visible_masks]
-            predicted_positions_global_rep =  self.relative_to_global(
-                predicted_positions.reshape(-1, 2), [robotX, robotY], self.robot.orientation
+            predicted_positions_global_rep = self.relative_to_global(
+                predicted_positions.reshape(-1, 2),
+                [robotX, robotY],
+                self.robot.orientation,
             )
             # just keept this code for fun vizualisation
 
@@ -658,7 +662,7 @@ class CrowdSimCar(gym.Env):
                 predicted_positions_global_rep[:, 1],
                 color="tab:orange",
                 marker="o",
-                s=human_visual_radius*3,
+                s=human_visual_radius * 3,
                 label="Human Future Traj",
                 alpha=0.5,
             )
@@ -673,13 +677,18 @@ class CrowdSimCar(gym.Env):
                 # draw a line between the agent and the other agent
                 for other_agent_id in other_agent_state:
                     ax.plot(
-                        [agent.coordinates[0], Agent.ENTITIES[other_agent_id].coordinates[0]],
-                        [agent.coordinates[1], Agent.ENTITIES[other_agent_id].coordinates[1]],
+                        [
+                            agent.coordinates[0],
+                            Agent.ENTITIES[other_agent_id].coordinates[0],
+                        ],
+                        [
+                            agent.coordinates[1],
+                            Agent.ENTITIES[other_agent_id].coordinates[1],
+                        ],
                         color="black",
                         linestyle="--",
                         linewidth=0.5,
                     )
-
 
         # plot reward space for experiment
         # x = np.meshgrid(np.linspace(-self.arena_size, self.arena_size, 5), np.linspace(-self.arena_size, self.arena_size, 5))
@@ -695,7 +704,7 @@ class CrowdSimCar(gym.Env):
         if self.render_mode == None:
             return
         self._render_frame()
-    
+
     @staticmethod
     def global_to_relative(
         global_coordinates, point_coordinates, point_orientation
@@ -716,7 +725,7 @@ class CrowdSimCar(gym.Env):
         relative_coordinates = np.dot(translated_coordinates, rotation_matrix)
 
         return relative_coordinates
-    
+
     @staticmethod
     def relative_to_global(
         relative_coordinates, point_coordinates, point_orientation
@@ -736,7 +745,7 @@ class CrowdSimCar(gym.Env):
         global_coordinates = rotated_coordinates + point_coordinates
 
         return global_coordinates
-    
+
     def compute_distance_matrix(self):
         """
         Compute the distance matrix between all agents
@@ -767,5 +776,3 @@ def distance_from_line(x: float, y: float, path: list) -> float:
     distance_to_path = np.linalg.norm(position - normal_point)
     # print(f"Distance to path: {distance_to_path}")
     return distance_to_path
-
-    

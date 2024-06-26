@@ -77,6 +77,12 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         self.action_space = self.define_action_space()
         self.all_agent_group = AgentGroup(*Agent.ENTITIES)
 
+        self.distance_matrix = None
+        # we do the hypothesis that no agent can change sensor range during the simulation
+        self.all_sensor_range = np.array(
+            self.all_agent_group.apply(lambda x: x.sensor_range)
+        )
+
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
     ) -> gym.spaces.Box:
@@ -148,7 +154,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
 
         # observation["graph_features"] = observation["graph_features"] - robot_position
         observation["graph_features"] = self.global_to_relative(
-            observation["graph_features"].reshape(-1,2), robot_position, robot_rotation
+            observation["graph_features"].reshape(-1, 2), robot_position, robot_rotation
         )
         observation["graph_features"] = observation["graph_features"].reshape(
             nb_humans_in_simulation, -1
