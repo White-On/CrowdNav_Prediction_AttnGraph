@@ -25,7 +25,7 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
-        load_scenario="front",
+        load_scenario="back",
     )
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False
@@ -59,9 +59,9 @@ def main():
             #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
             # )
             if done:
-                logging.info(
-                    f"Episode {episode+1} finished at step {step+1}, status: {info}"
-                )
+                # logging.info(
+                #     f"Episode {episode+1} finished at step {step+1}, status: {info}"
+                # )
                 if save:
                     log_results_episodes["episode"].append(episode)
                     log_results_episodes["status"].append(info.__class__.__name__)
