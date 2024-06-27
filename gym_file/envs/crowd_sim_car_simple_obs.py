@@ -17,7 +17,6 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
     Environment for the crowd simulation with a car as the robot.
     """
 
-    metadata = {"render_modes": ["human", "debug", None]}
 
     def __init__(
         self,
@@ -89,6 +88,12 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
             self.load_scenario = None
         else:
             self.load_scenario = load_scenario
+        
+        self.scenarios_collection = {
+            "front":self.load_front_scenario,
+            "back":self.load_back_scenario,
+            "random":self.load_random_scenario,
+            }
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int

@@ -17,6 +17,7 @@ class CrowdSimCar(gym.Env):
 
     metadata = {"render_modes": ["human", "debug", None]}
     implemented_scenarios = ["front", "back", "random"]
+    
 
     def __init__(
         self,
@@ -89,6 +90,12 @@ class CrowdSimCar(gym.Env):
             self.load_scenario = None
         else:
             self.load_scenario = load_scenario
+        
+        self.scenarios_collection = {
+            "front":self.load_front_scenario,
+            "back":self.load_back_scenario,
+            "random":self.load_random_scenario,
+            }
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
@@ -142,12 +149,8 @@ class CrowdSimCar(gym.Env):
         Reset the environment
         :return:
         """
-        scenarios_collection = {
-            "front":self.load_front_scenario,
-            "back":self.load_back_scenario,
-            }
         if self.load_scenario is not None:
-            scenarios_collection[self.load_scenario]()
+            self.scenarios_collection[self.load_scenario]()
         else:
             self.all_agent_group.reset()
             if len(Human.HUMAN_LIST) != 0:
@@ -796,7 +799,7 @@ class CrowdSimCar(gym.Env):
         """
         Load the front scenario
         """
-        logging.info("Loading front scenario")
+        logging.debug("Loading front scenario")
         self.robot.reset()
         self.robot.coordinates = [-5, 0]
         self.robot.orientation = 0
@@ -819,7 +822,7 @@ class CrowdSimCar(gym.Env):
         """
         Load the back scenario
         """
-        logging.info("Loading back scenario")
+        logging.debug("Loading back scenario")
         self.robot.reset()
         self.robot.coordinates = [-5, 0]
         self.robot.orientation = 0
@@ -838,3 +841,11 @@ class CrowdSimCar(gym.Env):
             human.coordinates = human_coordinates[i]
             human.goal_coordinates = human_goal_coordinates[i]
             human.no_reset_goal = True
+        
+    def load_random_scenario(self):
+        """
+        Choose randomly one of the implemented scenarios except the random scenario
+        """
+        logging.debug("Loading random scenario")
+        scenario = np.random.choice(self.implemented_scenarios[:-1])
+        self.scenarios_collection[scenario]()
