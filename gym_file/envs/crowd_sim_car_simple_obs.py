@@ -9,8 +9,6 @@ import logging
 import matplotlib.pyplot as plt
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 
-from rich import print
-
 
 class CrowdSimCarSimpleObs(CrowdSimCar):
     """
