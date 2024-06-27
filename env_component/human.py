@@ -21,6 +21,7 @@ class Human(Agent):
 
         self.is_moving = is_moving
         self.goal_coordinates = [None, None]
+        self.no_reset_goal = kwargs.get("no_reset_goal", False)
 
     @classmethod
     def apply(cls, function: staticmethod, *args, **kwargs) -> list:
@@ -57,7 +58,10 @@ class Human(Agent):
         """
         no_goal_set = self.goal_coordinates == [None, None]
         if no_goal_set:
+            if self.no_reset_goal:
+                return [0, 0]
             self.goal_coordinates = self.set_random_goal()
+        
 
         max_neighbors = len(other_agent_state)
         timehorizon = 5

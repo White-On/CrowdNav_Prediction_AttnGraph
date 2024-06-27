@@ -28,6 +28,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         time_step=0.1,
         display_future_trajectory=False,
         robot_is_visible=False,
+        load_scenario=None,
     ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -82,6 +83,12 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         self.all_sensor_range = np.array(
             self.all_agent_group.apply(lambda x: x.sensor_range)
         )
+
+        if load_scenario is not None and load_scenario not in self.implemented_scenarios:
+            logging.warning(f"Scenario {load_scenario} is not implemented, using default scenario")
+            self.load_scenario = None
+        else:
+            self.load_scenario = load_scenario
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int

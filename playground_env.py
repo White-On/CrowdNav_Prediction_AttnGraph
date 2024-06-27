@@ -13,7 +13,7 @@ def main():
     log_file = "env_experiment.log"
     logging_setup(log_file)
 
-    num_steps = 500
+    num_steps = 200
     random_behavior = True
     num_episodes = 1
 
@@ -25,6 +25,7 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
+        load_scenario="front",
     )
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False

@@ -16,6 +16,7 @@ class CrowdSimCar(gym.Env):
     """
 
     metadata = {"render_modes": ["human", "debug", None]}
+    implemented_scenarios = ["front", "back"]
 
     def __init__(
         self,
@@ -26,6 +27,7 @@ class CrowdSimCar(gym.Env):
         time_step=0.1,
         display_future_trajectory=True,
         robot_is_visible=False,
+        load_scenario=None,
     ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -82,6 +84,12 @@ class CrowdSimCar(gym.Env):
             self.all_agent_group.apply(lambda x: x.sensor_range)
         )
 
+        if load_scenario is not None and load_scenario not in self.implemented_scenarios:
+            logging.warning(f"Scenario {load_scenario} is not implemented, using default scenario")
+            self.load_scenario = None
+        else:
+            self.load_scenario = load_scenario
+
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
     ) -> gym.spaces.Dict:
@@ -134,19 +142,23 @@ class CrowdSimCar(gym.Env):
         Reset the environment
         :return:
         """
-
-        self.global_time = 0
-        self.all_agent_group.reset()
-        if len(Human.HUMAN_LIST) != 0:
-            distance_from_human = self.robot.distance_from_other_agents(
-                [human.get_position() for human in Human.HUMAN_LIST]
-            )
-            while self.compute_collision_reward(distance_from_human) < 0:
-                self.robot.reset()
+        scenarios_collection = {"front":self.load_forward_scenario(), "back":self.load_back_scenario()}
+        if self.load_scenario is not None:
+            # logging.info(f"Loading scenario {self.load_scenario}")
+            scenarios_collection[self.load_scenario]
+        else:
+            self.all_agent_group.reset()
+            if len(Human.HUMAN_LIST) != 0:
                 distance_from_human = self.robot.distance_from_other_agents(
                     [human.get_position() for human in Human.HUMAN_LIST]
                 )
+                while self.compute_collision_reward(distance_from_human) < 0:
+                    self.robot.reset()
+                    distance_from_human = self.robot.distance_from_other_agents(
+                        [human.get_position() for human in Human.HUMAN_LIST]
+                    )
 
+        self.global_time = 0
         # compute distance_matrix
         self.distance_matrix = self.compute_distance_matrix()
         # get robot observation
@@ -167,7 +179,7 @@ class CrowdSimCar(gym.Env):
         reward, done, episode_info = self.calc_reward()
 
         if done:
-            self.all_agent_group.reset()
+            self.reset()
 
         # apply action and update all agents
         agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
@@ -365,7 +377,7 @@ class CrowdSimCar(gym.Env):
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
-        collision_factor = 1
+        collision_factor = 0.4
         near_collision_factor = 0
         speed_factor = 6
         angular_factor = 2
@@ -745,6 +757,7 @@ class CrowdSimCar(gym.Env):
         global_coordinates = rotated_coordinates + point_coordinates
 
         return global_coordinates
+    
 
     def compute_distance_matrix(self):
         """
@@ -759,20 +772,60 @@ class CrowdSimCar(gym.Env):
         )
         return matrix_distance_from_each_other
 
+    @staticmethod
+    def distance_from_line(x: float, y: float, path: list) -> float:
+        position = [x, y]
+        path = np.array(path)
 
-def distance_from_line(x: float, y: float, path: list) -> float:
-    position = [x, y]
-    path = np.array(path)
+        if np.array_equal(position, path[0]):
+            return 0.0
 
-    if np.array_equal(position, path[0]):
-        return 0.0
+        a = position - path[0]
+        b = path[1] - path[0]
+        d = np.linalg.norm(a) * np.cos(
+            np.arccos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+        )
+        normal_point = path[0] + d * b / np.linalg.norm(b)
+        distance_to_path = np.linalg.norm(position - normal_point)
+        # print(f"Distance to path: {distance_to_path}")
+        return distance_to_path
+    
+    def load_forward_scenario(self):
+        """
+        Load the forward scenario
+        """
+        self.robot.reset()
+        self.robot.coordinates = [-5, 0]
+        self.robot.orientation = 0
+        self.robot.collection_goal_coordinates = [[5, 0]]
+        self.robot.current_goal_cusor = 0
+        self.robot.path = self.robot.create_path()
 
-    a = position - path[0]
-    b = path[1] - path[0]
-    d = np.linalg.norm(a) * np.cos(
-        np.arccos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-    )
-    normal_point = path[0] + d * b / np.linalg.norm(b)
-    distance_to_path = np.linalg.norm(position - normal_point)
-    # print(f"Distance to path: {distance_to_path}")
-    return distance_to_path
+        if len(Human.HUMAN_LIST) == 0:
+            logging.warning("No human in the simulation")
+        
+        human_coordinates = np.random.multivariate_normal([5, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
+        human_goal_coordinates = np.random.multivariate_normal([-5, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
+        for i, human in enumerate(Human.HUMAN_LIST):
+            human.coordinates = human_coordinates[i]
+            human.goal_coordinates = human_goal_coordinates[i]
+            human.no_reset_goal = True
+    
+    def load_back_scenario(self):
+        """
+        Load the back scenario
+        """
+        pass
+        # self.robot.coordinates = [5, 0]
+        # self.robot.orientation = np.pi
+        # self.robot.collection_goal_coordinates = [[-5, 0]]
+        # self.robot.current_goal_cusor = 0
+
+        # if len(Human.HUMAN_LIST) == 0:
+        #     logging.warning("No human in the simulation")
+        
+        # human_coordinates = np.random.multivariate_normal([-5, 0], np.eye(2), len(Human.HUMAN_LIST))
+        # human_goal_coordinates = np.random.multivariate_normal([5, 0], np.eye(2), len(Human.HUMAN_LIST))
+        # for i, human in enumerate(Human.HUMAN_LIST):
+        #     human.coordinates = human_coordinates[i]
+        #     human.goal_coordinates = human_goal_coordinates[i]

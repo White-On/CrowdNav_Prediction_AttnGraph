@@ -9,7 +9,7 @@ import logging
 """
 
 
-def _log_summary(ep_len, ep_ret, ep_num):
+def _log_summary(ep_len, ep_ret, ep_num, ep_done):
     """
     Print to stdout what we've logged so far in the most recent episode.
 
@@ -28,6 +28,7 @@ def _log_summary(ep_len, ep_ret, ep_num):
         f"-------------------- Episode #{ep_num} --------------------\n\
 		Episodic Length: {ep_len}\n\
 		Episodic Return: {ep_ret}\n\
+        Done Reason: {ep_done}\n\
 		------------------------------------------------------"
     )
 
@@ -73,7 +74,7 @@ def rollout(policy, env, render):
 
             # Query deterministic action from policy and run it
             action = policy(obs).detach().numpy()
-            obs, rew, done, _ = env.step(action)
+            obs, rew, done, info = env.step(action)
             env.calc_reward(save_in_file=True)
 
             # logging.debug(f"{np.array(obs) = }")
@@ -85,7 +86,7 @@ def rollout(policy, env, render):
         ep_len = t
 
         # returns episodic length and return in this iteration
-        yield ep_len, ep_ret
+        yield ep_len, ep_ret, info
 
 
 def eval_policy(policy, env, render=False):
@@ -109,5 +110,5 @@ def eval_policy(policy, env, render=False):
     with open("reward.csv", "w") as f:
         f.write("")
     # Rollout with the policy and environment, and log each episode's data
-    for ep_num, (ep_len, ep_ret) in enumerate(rollout(policy, env, render)):
-        _log_summary(ep_len=ep_len, ep_ret=ep_ret, ep_num=ep_num)
+    for ep_num, (ep_len, ep_ret, ep_done) in enumerate(rollout(policy, env, render)):
+        _log_summary(ep_len=ep_len, ep_ret=ep_ret, ep_num=ep_num, ep_done=ep_done)

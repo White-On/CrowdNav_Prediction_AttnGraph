@@ -110,7 +110,7 @@ def main(args):
     # To see a list of hyperparameters, look in ppo.py at function _init_hyperparameters
     hyperparameters = {
         "timesteps_per_batch": 2048,
-        "max_timesteps_per_episode": 400,
+        "max_timesteps_per_episode": 200,
         "gamma": 0.99,
         "n_updates_per_iteration": 10,
         "lr": 3e-4,
@@ -137,7 +137,7 @@ def main(args):
         "CrowdSimCar-v1",
         render_mode="human",
         episode_time=hyperparameters["max_timesteps_per_episode"],
-        nb_pedestrians=5,
+        nb_pedestrians=8,
         disable_env_checker=True,
     )
 
