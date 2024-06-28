@@ -16,6 +16,7 @@ def main():
     num_steps = 200
     random_behavior = True
     num_episodes = 1
+    # logging.info(gym.envs.registry.keys())
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(

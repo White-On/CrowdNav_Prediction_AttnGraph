@@ -14,6 +14,7 @@ from logger import logging_setup
 def main():
     logging_setup("DDPG_evaluation.log", level=logging.INFO)
 
+    logging.info(gym.envs.registry.keys())
     env = gym.make(
             "CrowdSimCar-v1",
             render_mode="human",
