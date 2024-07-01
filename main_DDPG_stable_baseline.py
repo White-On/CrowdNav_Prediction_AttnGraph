@@ -12,33 +12,35 @@ import logging
 from logger import logging_setup
 
 def main():
-    # logging_setup("DDPG_evaluation.log", level=logging.INFO)
+    logging_setup("DDPG_evaluation.log", level=logging.INFO)
+    episode_time = 500
+    eval = True
 
-    logging.info(gym.envs.registry.keys())
+    # logging.info(gym.envs.registry.keys())
     env = gym.make(
             "CrowdSimCar-v1",
             render_mode="human",
-            episode_time=200,
+            episode_time=episode_time,
             nb_pedestrians=10,
             disable_env_checker=True,
-            load_scenario="front",
+            load_scenario=None,
         )
 
     # The noise objects for DDPG
     n_actions = env.action_space.shape[-1]
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
 
-    model = DDPG("MlpPolicy", env, action_noise=action_noise, verbose=1)
-    model.learn(total_timesteps=10000, log_interval=10)
-    model.save("ddpg_CrowdSimCar")
+    model = DDPG("MlpPolicy", env, action_noise=action_noise, verbose=1, tensorboard_log="runs")
+    if not eval:
+        model.learn(total_timesteps=50_000, log_interval=10, progress_bar=True)
+        model.save("ddpg_CrowdSimCar")
+
     vec_env = model.get_env()
-
-    del model # remove to demonstrate saving and loading
-
     model = DDPG.load("ddpg_CrowdSimCar")
 
     obs = vec_env.reset()
-    while True:
+
+    for _ in range(episode_time):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = vec_env.step(action)
         env.render()
