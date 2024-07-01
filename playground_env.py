@@ -49,7 +49,7 @@ def main():
                 action[0] = random_acceleration
                 # action[1] = random_angle
 
-            obs, reward, done, info = env.step(action)
+            obs, reward, done, truncated, info = env.step(action)
             env.render()
 
             if isinstance(obs, list):
@@ -57,15 +57,15 @@ def main():
 
             # logging.info(f"{obs.shape = }")
             # logging.info(
-            #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info}"
+            #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info['info']}"
             # )
             if done:
                 # logging.info(
-                #     f"Episode {episode+1} finished at step {step+1}, status: {info}"
+                #     f"Episode {episode+1} finished at step {step+1}, status: {info['info']}"
                 # )
                 if save:
                     log_results_episodes["episode"].append(episode)
-                    log_results_episodes["status"].append(info.__class__.__name__)
+                    log_results_episodes["status"].append(info['info'])
                     log_results_episodes["reward"].append(reward)
                     log_results_episodes["steps"].append(step + 1)
                 # break

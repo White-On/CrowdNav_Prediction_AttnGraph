@@ -244,7 +244,7 @@ class PPO:
             ep_rews = []  # rewards collected per episode
 
             # Reset the environment. sNote that obs is short for observation.
-            obs = self.env.reset()
+            obs, _ = self.env.reset()
             done = False
 
             # Run an episode for a maximum of max_timesteps_per_episode timesteps
@@ -265,7 +265,7 @@ class PPO:
                 # Calculate action and make a step in the env.
                 # Note that rew is short for reward.
                 action, log_prob = self.get_action(obs)
-                obs, rew, done, _ = self.env.step(action)
+                obs, rew, done, truncated, _ = self.env.step(action)
 
                 # Track recent reward, action, and action log probability
                 ep_rews.append(rew)

@@ -1,5 +1,5 @@
-import gym
-import gym.spaces
+import gymnasium as gym
+import gymnasium.spaces
 import numpy as np
 
 from env_component.human import Human
@@ -99,35 +99,35 @@ class CrowdSimCar(gym.Env):
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
-    ) -> gym.spaces.Dict:
+    ) -> gymnasium.spaces.Dict:
         observation_space = {}
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
         # vehicle_speed_boundries = [-0.5, 2]
         # vehicle_angle_boundries = [-np.pi/6, np.pi/6]
         # objectives_boundries = np.full((forseen_index, 2), [-10,10])
         # all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
-        # observation_space['robot_node'] = gym.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
-        observation_space["robot_node"] = gym.spaces.Box(
+        # observation_space['robot_node'] = gymnasium.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
+        observation_space["robot_node"] = gymnasium.spaces.Box(
             low=-np.inf, high=np.inf, shape=(3 + forseen_index * 2,), dtype=np.float32
         )
 
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2 * (nb_graph_feature))
 
-        observation_space["graph_features"] = gym.spaces.Box(
+        observation_space["graph_features"] = gymnasium.spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(nb_humans, spatial_edge_dim),
             dtype=np.float32,
         )
 
-        observation_space["visible_masks"] = gym.spaces.Box(
+        observation_space["visible_masks"] = gymnasium.spaces.Box(
             low=-np.inf, high=np.inf, shape=(nb_humans,), dtype=np.float32
         )
 
-        return gym.spaces.Dict(observation_space)
+        return gymnasium.spaces.Dict(observation_space)
 
-    def define_action_space(self) -> gym.spaces.Box:
+    def define_action_space(self) -> gymnasium.spaces.Box:
         # vehicle_speed_boundries = [-0.5, 2]
         vehicle_speed_boundries = [-0.2, 0.2]
         # TODO put back the ability to drive backward
@@ -140,11 +140,11 @@ class CrowdSimCar(gym.Env):
         action_space_boundries = np.vstack(
             (vehicle_speed_boundries, vehicle_angle_boundries)
         )
-        return gym.spaces.Box(
+        return gymnasium.spaces.Box(
             action_space_boundries[:, 0], action_space_boundries[:, 1], dtype=np.float32
         )
 
-    def reset(self) -> dict:
+    def reset(self,**kwargs) -> dict:
         """
         Reset the environment
         :return:
@@ -169,7 +169,7 @@ class CrowdSimCar(gym.Env):
         # get robot observation
         observation_after_reset = self.generate_observation()
 
-        return observation_after_reset
+        return (observation_after_reset, None)
 
     def step(self, robot_action: np.ndarray) -> tuple:
         """
@@ -230,8 +230,10 @@ class CrowdSimCar(gym.Env):
 
         # compute the observation
         step_observation = self.generate_observation()
-
-        return step_observation, reward, done, episode_info
+        # gymnasium API 
+        truncated = False
+        episode_info = {"info":episode_info,"truncated":truncated}
+        return step_observation, reward, done, truncated, episode_info
 
     def generate_observation(self) -> dict:
         """Generate observation for reset and step functions"""

@@ -12,7 +12,7 @@ import logging
 from logger import logging_setup
 
 def main():
-    logging_setup("DDPG_evaluation.log", level=logging.INFO)
+    # logging_setup("DDPG_evaluation.log", level=logging.INFO)
 
     logging.info(gym.envs.registry.keys())
     env = gym.make(
@@ -35,7 +35,7 @@ def main():
 
     del model # remove to demonstrate saving and loading
 
-    model = DDPG.load("ddpg_pendulum")
+    model = DDPG.load("ddpg_CrowdSimCar")
 
     obs = vec_env.reset()
     while True:

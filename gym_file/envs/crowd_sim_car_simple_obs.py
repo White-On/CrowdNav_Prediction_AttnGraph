@@ -1,5 +1,5 @@
-import gym
-import gym.spaces
+import gymnasium as gym
+import gymnasium.spaces
 import numpy as np
 
 from env_component.human import Human
@@ -95,7 +95,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
-    ) -> gym.spaces.Box:
+    ) -> gymnasium.spaces.Box:
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2 * (nb_graph_feature))
@@ -103,7 +103,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         robot_node_shape = 1 + 1 + forseen_index * 2
         graph_feature_shape = nb_humans * spatial_edge_dim
 
-        return gym.spaces.Box(
+        return gymnasium.spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(robot_node_shape + graph_feature_shape,),
