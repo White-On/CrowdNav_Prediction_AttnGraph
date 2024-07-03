@@ -67,6 +67,8 @@ class CrowdSimCar(gym.Env):
             nb_goals=5,
         )
 
+        self.past_distance_from_goal = None
+
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
 
@@ -354,6 +356,11 @@ class CrowdSimCar(gym.Env):
         # penalty_distance = 1
         # return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
         return 1 - 2 / (1 + np.exp((-distance_from_goal)))
+    
+    def compute_progression_toward_goal_reward(self, current_distance_from_goal: float, past_distance_from_goal: float) -> float:
+        # positive reward if the robot is closer to the goal than before
+        return past_distance_from_goal - current_distance_from_goal
+        
 
     def calc_reward(self, save_in_file=False) -> tuple:
         if len(Human.HUMAN_LIST) != 0:
@@ -376,28 +383,36 @@ class CrowdSimCar(gym.Env):
         # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
         angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 
-        # current_goal_coordinates = self.robot.get_current_visible_goal()
-        # if current_goal_coordinates is None:
-        #     distance_from_goal = 0
-        # else:
-        #     distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
+        current_goal_coordinates = self.robot.get_current_visible_goal()
+        if current_goal_coordinates is None:
+            current_distance_from_goal = 0
+        else:
+            current_distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
-        progression_toward_goal_reward = 0
+        if self.past_distance_from_goal is None:
+            self.past_distance_from_goal = current_distance_from_goal
+
+        progression_toward_goal_reward = self.compute_progression_toward_goal_reward(
+            current_distance_from_goal, self.past_distance_from_goal
+        )
+
+        self.past_distance_from_goal = current_distance_from_goal
 
         collision_factor = 2
         near_collision_factor = 0
         speed_factor = 6
         angular_factor = 2
         proximity_factor = 0
-        progression_toward_goal_factor = 1
+        progression_toward_goal_factor = 10
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
         speed_reward *= speed_factor
         angular_reward *= angular_factor
         proximity_reward *= proximity_factor
+        progression_toward_goal_reward *= progression_toward_goal_factor
 
         reward = (
             collision_reward
@@ -414,6 +429,7 @@ class CrowdSimCar(gym.Env):
                     🚀 speed_reward: {speed_reward:>7.2f},\n\
                     📐 angular_reward: {angular_reward:>7.2f},\n\
                     🤏 proximity_reward: {proximity_reward:>7.2f},\n\
+                    📈 progression_toward_goal_reward: {progression_toward_goal_reward:>7.2f},\n\
                     🏆 reward: {reward:>7.2f}"
         )
 

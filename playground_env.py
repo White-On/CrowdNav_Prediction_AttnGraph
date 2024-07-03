@@ -11,7 +11,7 @@ import gym
 def main():
     gym.logger.set_level(40)
     log_file = "env_experiment.log"
-    logging_setup(log_file)
+    logging_setup(log_file, level=logging.INFO)
 
     num_steps = 200
     random_behavior = True
