@@ -18,7 +18,7 @@ def main():
 
     # logging.info(gym.envs.registry.keys())
     env = gym.make(
-            "CrowdSimCar-v1",
+            "CrowdSimCar-v0",
             render_mode="human",
             episode_time=episode_time,
             nb_pedestrians=10,
@@ -30,7 +30,7 @@ def main():
     n_actions = env.action_space.shape[-1]
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
 
-    model = DDPG("MlpPolicy", env, action_noise=action_noise, verbose=1, tensorboard_log="runs")
+    model = DDPG("MultiInputPolicy", env, action_noise=action_noise, verbose=1, tensorboard_log="runs")
     if not eval:
         model.learn(total_timesteps=50_000, log_interval=10, progress_bar=True)
         model.save("ddpg_CrowdSimCar")

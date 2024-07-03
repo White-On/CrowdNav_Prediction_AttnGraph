@@ -20,13 +20,13 @@ def main():
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
-        "CrowdSimCar-v1",
+        "CrowdSimCar-v0",
         render_mode="human",
         episode_time=num_steps,
         nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
-        load_scenario="front",
+        load_scenario=None,
     )
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False

@@ -108,7 +108,7 @@ class CrowdSimCar(gym.Env):
         # all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
         # observation_space['robot_node'] = gymnasium.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
         observation_space["robot_node"] = gymnasium.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(3 + forseen_index * 2,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(2 + forseen_index * 2,), dtype=np.float32
         )
 
         # predictions only include mu_x, mu_y (or px, py)
@@ -384,11 +384,14 @@ class CrowdSimCar(gym.Env):
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
+        progression_toward_goal_reward = 0
+
         collision_factor = 2
         near_collision_factor = 0
         speed_factor = 6
         angular_factor = 2
-        proximity_factor = 3
+        proximity_factor = 0
+        progression_toward_goal_factor = 1
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -402,6 +405,7 @@ class CrowdSimCar(gym.Env):
             + speed_reward
             + angular_reward
             + proximity_reward
+            + progression_toward_goal_reward
         )
 
         logging.debug(
