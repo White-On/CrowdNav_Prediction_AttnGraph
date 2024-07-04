@@ -11,7 +11,7 @@ import gym
 def main():
     gym.logger.set_level(40)
     log_file = "env_experiment.log"
-    logging_setup(log_file, level=logging.INFO)
+    logging_setup(log_file, level=logging.DEBUG)
 
     num_steps = 200
     random_behavior = True
@@ -65,7 +65,7 @@ def main():
                 # )
                 if save:
                     log_results_episodes["episode"].append(episode)
-                    log_results_episodes["status"].append(info['info'])
+                    log_results_episodes["status"].append(info["info"])
                     log_results_episodes["reward"].append(reward)
                     log_results_episodes["steps"].append(step + 1)
                 # break

@@ -17,7 +17,6 @@ class CrowdSimCar(gym.Env):
 
     metadata = {"render_modes": ["human", "debug", None]}
     implemented_scenarios = ["front", "back", "random"]
-    
 
     def __init__(
         self,
@@ -87,17 +86,22 @@ class CrowdSimCar(gym.Env):
             self.all_agent_group.apply(lambda x: x.sensor_range)
         )
 
-        if load_scenario is not None and load_scenario not in self.implemented_scenarios:
-            logging.warning(f"Scenario {load_scenario} is not implemented, using default scenario")
+        if (
+            load_scenario is not None
+            and load_scenario not in self.implemented_scenarios
+        ):
+            logging.warning(
+                f"Scenario {load_scenario} is not implemented, using default scenario"
+            )
             self.load_scenario = None
         else:
             self.load_scenario = load_scenario
-        
+
         self.scenarios_collection = {
-            "front":self.load_front_scenario,
-            "back":self.load_back_scenario,
-            "random":self.load_random_scenario,
-            }
+            "front": self.load_front_scenario,
+            "back": self.load_back_scenario,
+            "random": self.load_random_scenario,
+        }
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
@@ -146,7 +150,7 @@ class CrowdSimCar(gym.Env):
             action_space_boundries[:, 0], action_space_boundries[:, 1], dtype=np.float32
         )
 
-    def reset(self,**kwargs) -> dict:
+    def reset(self, **kwargs) -> dict:
         """
         Reset the environment
         :return:
@@ -168,6 +172,8 @@ class CrowdSimCar(gym.Env):
         self.global_time = 0
         # compute distance_matrix
         self.distance_matrix = self.compute_distance_matrix()
+        self.past_distance_from_goal = None
+
         # get robot observation
         observation_after_reset = self.generate_observation()
 
@@ -232,9 +238,9 @@ class CrowdSimCar(gym.Env):
 
         # compute the observation
         step_observation = self.generate_observation()
-        # gymnasium API 
+        # gymnasium API
         truncated = False
-        episode_info = {"info":episode_info,"truncated":truncated}
+        episode_info = {"info": episode_info, "truncated": truncated}
         return step_observation, reward, done, truncated, episode_info
 
     def generate_observation(self) -> dict:
@@ -356,11 +362,12 @@ class CrowdSimCar(gym.Env):
         # penalty_distance = 1
         # return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
         return 1 - 2 / (1 + np.exp((-distance_from_goal)))
-    
-    def compute_progression_toward_goal_reward(self, current_distance_from_goal: float, past_distance_from_goal: float) -> float:
+
+    def compute_progression_toward_goal_reward(
+        self, current_distance_from_goal: float, past_distance_from_goal: float
+    ) -> float:
         # positive reward if the robot is closer to the goal than before
         return past_distance_from_goal - current_distance_from_goal
-        
 
     def calc_reward(self, save_in_file=False) -> tuple:
         if len(Human.HUMAN_LIST) != 0:
@@ -387,7 +394,9 @@ class CrowdSimCar(gym.Env):
         if current_goal_coordinates is None:
             current_distance_from_goal = 0
         else:
-            current_distance_from_goal = np.linalg.norm(np.array(self.robot.coordinates) - np.array(current_goal_coordinates))
+            current_distance_from_goal = np.linalg.norm(
+                np.array(self.robot.coordinates) - np.array(current_goal_coordinates)
+            )
         distance_from_path = self.robot.get_distance_from_path()
         proximity_reward = self.compute_proximity_reward(distance_from_path)
 
@@ -403,9 +412,9 @@ class CrowdSimCar(gym.Env):
         collision_factor = 2
         near_collision_factor = 0
         speed_factor = 6
-        angular_factor = 2
+        angular_factor = 0
         proximity_factor = 0
-        progression_toward_goal_factor = 10
+        progression_toward_goal_factor = 30
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -448,6 +457,7 @@ class CrowdSimCar(gym.Env):
         if is_robot_reach_goal:
             reward += reward_single_goal_reached
             self.robot.next_goal()
+            self.past_distance_from_goal = None
         all_goals_reached = self.robot.current_goal_cusor >= len(
             self.robot.collection_goal_coordinates
         )
@@ -457,7 +467,7 @@ class CrowdSimCar(gym.Env):
             self.all_agent_group.reset()
 
         # logging.debug(f'🎯 distance_from_goal: {is_robot_reach_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
-        logging.debug(f"🎯 distance_from_goal: {is_robot_reach_goal:>7.2f}")
+        # logging.debug(f"🎯 distance_from_goal: {is_robot_reach_goal:>7.2f}")
 
         conditions = {
             episode_timeout: "Timeout",
@@ -784,7 +794,6 @@ class CrowdSimCar(gym.Env):
         global_coordinates = rotated_coordinates + point_coordinates
 
         return global_coordinates
-    
 
     def compute_distance_matrix(self):
         """
@@ -816,7 +825,7 @@ class CrowdSimCar(gym.Env):
         distance_to_path = np.linalg.norm(position - normal_point)
         # print(f"Distance to path: {distance_to_path}")
         return distance_to_path
-    
+
     def load_front_scenario(self):
         """
         Load the front scenario
@@ -831,15 +840,19 @@ class CrowdSimCar(gym.Env):
 
         if len(Human.HUMAN_LIST) == 0:
             logging.warning("No human in the simulation")
-        
-        human_coordinates = np.random.multivariate_normal([5, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
-        human_goal_coordinates = np.random.multivariate_normal([-5, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
+
+        human_coordinates = np.random.multivariate_normal(
+            [5, 0], np.eye(2), len(Human.HUMAN_LIST)
+        ).tolist()
+        human_goal_coordinates = np.random.multivariate_normal(
+            [-5, 0], np.eye(2), len(Human.HUMAN_LIST)
+        ).tolist()
         for i, human in enumerate(Human.HUMAN_LIST):
             human.reset()
             human.coordinates = human_coordinates[i]
             human.goal_coordinates = human_goal_coordinates[i]
             human.no_reset_goal = True
-    
+
     def load_back_scenario(self):
         """
         Load the back scenario
@@ -854,16 +867,20 @@ class CrowdSimCar(gym.Env):
 
         if len(Human.HUMAN_LIST) == 0:
             logging.warning("No human in the simulation")
-        
-        human_coordinates = np.random.multivariate_normal([-2, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
-        human_goal_coordinates = np.random.multivariate_normal([5, 0], np.eye(2), len(Human.HUMAN_LIST)).tolist()
+
+        human_coordinates = np.random.multivariate_normal(
+            [-2, 0], np.eye(2), len(Human.HUMAN_LIST)
+        ).tolist()
+        human_goal_coordinates = np.random.multivariate_normal(
+            [5, 0], np.eye(2), len(Human.HUMAN_LIST)
+        ).tolist()
         for i, human in enumerate(Human.HUMAN_LIST):
             human.reset()
             human.desired_speed = 0.5 * self.robot.desired_speed
             human.coordinates = human_coordinates[i]
             human.goal_coordinates = human_goal_coordinates[i]
             human.no_reset_goal = True
-        
+
     def load_random_scenario(self):
         """
         Choose randomly one of the implemented scenarios except the random scenario

@@ -61,7 +61,6 @@ class Human(Agent):
             if self.no_reset_goal:
                 return [0, 0]
             self.goal_coordinates = self.set_random_goal()
-        
 
         max_neighbors = len(other_agent_state)
         timehorizon = 5

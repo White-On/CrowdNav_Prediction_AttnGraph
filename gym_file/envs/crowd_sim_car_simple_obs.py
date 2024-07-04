@@ -15,7 +15,6 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
     Environment for the crowd simulation with a car as the robot.
     """
 
-
     def __init__(
         self,
         render_mode=None,
@@ -81,17 +80,22 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
             self.all_agent_group.apply(lambda x: x.sensor_range)
         )
 
-        if load_scenario is not None and load_scenario not in self.implemented_scenarios:
-            logging.warning(f"Scenario {load_scenario} is not implemented, using default scenario")
+        if (
+            load_scenario is not None
+            and load_scenario not in self.implemented_scenarios
+        ):
+            logging.warning(
+                f"Scenario {load_scenario} is not implemented, using default scenario"
+            )
             self.load_scenario = None
         else:
             self.load_scenario = load_scenario
-        
+
         self.scenarios_collection = {
-            "front":self.load_front_scenario,
-            "back":self.load_back_scenario,
-            "random":self.load_random_scenario,
-            }
+            "front": self.load_front_scenario,
+            "back": self.load_back_scenario,
+            "random": self.load_random_scenario,
+        }
 
     def define_observations_space(
         self, forseen_index: int, nb_humans: int, nb_graph_feature: int
