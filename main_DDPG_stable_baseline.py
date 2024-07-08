@@ -61,7 +61,7 @@ def main():
 
     for i in range(nb_learnging_cycles):
         model.learn(
-            total_timesteps=save_every_n_timesteps, log_interval=10, progress_bar=True
+            total_timesteps=save_every_n_timesteps, log_interval=10, progress_bar=True, reset_num_timesteps=False
         )
         model.save(model_file)
 

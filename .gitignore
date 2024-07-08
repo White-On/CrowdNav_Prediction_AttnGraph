@@ -6,3 +6,6 @@
 *.csv
 *.zip
 runs/
+.env
+ssh_keys
+ssh_keys.pub
