@@ -54,6 +54,7 @@ def main():
         )
         model.save(model_file)
 
+    vec_env = model.get_env()
     model = PPO.load(model_file)
 
     obs = vec_env.reset()

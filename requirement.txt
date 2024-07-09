@@ -1,0 +1,14 @@
+black
+chime
+Cython
+gym
+gymnasium
+ipykernel
+matplotlib
+numpy
+pandas
+pytest
+rich
+tensorboard
+torch
+tqdm
