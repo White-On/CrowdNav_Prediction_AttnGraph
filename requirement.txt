@@ -12,3 +12,4 @@ rich
 tensorboard
 torch
 tqdm
+stable-baselines3

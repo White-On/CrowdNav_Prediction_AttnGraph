@@ -367,7 +367,10 @@ class CrowdSimCar(gym.Env):
         self, current_distance_from_goal: float, past_distance_from_goal: float
     ) -> float:
         # positive reward if the robot is closer to the goal than before
-        return past_distance_from_goal - current_distance_from_goal
+        # if negative we punish even harder
+        negative_factor = 3
+        progression = past_distance_from_goal - current_distance_from_goal
+        return progression if progression > 0 else negative_factor * progression
 
     def calc_reward(self, save_in_file=False) -> tuple:
         if len(Human.HUMAN_LIST) != 0:
@@ -412,7 +415,7 @@ class CrowdSimCar(gym.Env):
         collision_factor = 2
         near_collision_factor = 0
         speed_factor = 6
-        angular_factor = 0
+        angular_factor = 2
         proximity_factor = 0
         progression_toward_goal_factor = 30
 
