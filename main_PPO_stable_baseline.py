@@ -12,7 +12,7 @@ def main():
     logging_setup("PPO_evaluation.log", level=logging.INFO)
     episode_time = 500
     eval = False
-    total_timesteps = 500_000
+    total_timesteps = 5_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = "ppo_CrowdSimCar"
