@@ -324,6 +324,8 @@ class CrowdSimCar(gym.Env):
     def compute_near_collision_reward(self, distance_from_human: float) -> float:
         min_distance_to_keep_from_human = 1.5
         distance_to_closest_human = np.min(distance_from_human)
+        if distance_to_closest_human > self.robot.sensor_range:
+            return 0.0
         vehicle_current_speed = self.robot.velocity_norm
         vehicle_min_acceleration = self.robot.acceleration_limits[0]
 
@@ -416,9 +418,9 @@ class CrowdSimCar(gym.Env):
         self.past_distance_from_goal = current_distance_from_goal
 
         collision_factor = 2
-        near_collision_factor = 0
-        speed_factor = 6
-        angular_factor = 2
+        near_collision_factor = 2
+        speed_factor = 8
+        angular_factor = 0
         proximity_factor = 0
         progression_toward_goal_factor = 30
         outside_arena_factor = 1
@@ -448,6 +450,7 @@ class CrowdSimCar(gym.Env):
                     📐 angular_reward: {angular_reward:>7.2f},\n\
                     🤏 proximity_reward: {proximity_reward:>7.2f},\n\
                     📈 progression_toward_goal_reward: {progression_toward_goal_reward:>7.2f},\n\
+                    🏞️ outside_arena_reward: {outside_arena_reward:>7.2f},\n\
                     🏆 reward: {reward:>7.2f}"
         )
 

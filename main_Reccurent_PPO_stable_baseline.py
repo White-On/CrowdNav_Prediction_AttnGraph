@@ -1,5 +1,6 @@
-from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
 import gymnasium as gym
+import numpy as np
 
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
@@ -8,13 +9,13 @@ from logger import logging_setup
 
 
 def main():
-    logging_setup("PPO_evaluation.log", level=logging.INFO)
+    logging_setup("Recurrent_PPO_evaluation.log", level=logging.INFO)
     episode_time = 500
     eval = True
     total_timesteps = 5_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
-    model_file = "ppo_CrowdSimCar" 
+    model_file = "recurent_ppo_CrowdSimCar"
 
     env = gym.make(
         "CrowdSimCar-v0",
@@ -25,8 +26,8 @@ def main():
         load_scenario=None,
     )
 
-    model = PPO(
-        "MultiInputPolicy",
+    model = RecurrentPPO(
+        "MultiInputLstmPolicy",
         env,
         verbose=1,
         tensorboard_log="runs",
@@ -34,12 +35,18 @@ def main():
 
     if eval:
         env = model.get_env()
-        model = PPO.load(model_file)
+        model = RecurrentPPO.load(model_file)
         obs = env.reset()
+        # cell and hidden state of the LSTM
+        lstm_states = None
+        num_envs = 1
+        # Episode start signals are used to reset the lstm states
+        episode_starts = np.ones((num_envs,), dtype=bool)
 
         for _ in range(episode_time):
-            action, _states = model.predict(obs)
+            action, lstm_states = model.predict(obs, state=lstm_states, episode_start=episode_starts)
             obs, rewards, dones, info = env.step(action)
+            episode_starts = dones
             env.render()
 
         return
@@ -54,14 +61,20 @@ def main():
         model.save(model_file)
 
     vec_env = model.get_env()
-    model = PPO.load(model_file)
+    model = RecurrentPPO.load(model_file)
 
     obs = vec_env.reset()
+    # cell and hidden state of the LSTM
+    lstm_states = None
+    num_envs = 1
+    # Episode start signals are used to reset the lstm states
+    episode_starts = np.ones((num_envs,), dtype=bool)
 
     for _ in range(episode_time):
-        action, _states = model.predict(obs)
-        obs, rewards, dones, info = vec_env.step(action)
-        vec_env.render()
+        action, lstm_states = model.predict(obs, state=lstm_states, episode_start=episode_starts)
+        obs, rewards, dones, info = env.step(action)
+        episode_starts = dones
+        env.render()
 
 
 if __name__ == "__main__":
