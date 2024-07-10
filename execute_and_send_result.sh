@@ -8,6 +8,20 @@ else
     exit 1
 fi
 
+# Si le premier argument est PPO ou DDPG, utilisez ce modèle
+# on prendra PPO par défaut
+if [ "$1" == "PPO" ]; then
+    PYTHON_SCRIPT_PATH=$PPO_PYTHON_SCRIPT_PATH
+    echo "PPO"
+elif [ "$1" == "DDPG" ]; then
+    PYTHON_SCRIPT_PATH=$DDPG_PYTHON_SCRIPT_PATH
+    echo "DDPG"
+else
+    PYTHON_SCRIPT_PATH=$PPO_PYTHON_SCRIPT_PATH
+    echo "default PPO"
+fi
+
+
 # Créez une connexion SSH persistante à la machine distante
 echo "Création d'une connexion SSH persistante à $REMOTE_USER@$REMOTE_HOST..."
 ssh -M -f -N -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST
