@@ -46,7 +46,9 @@ def main():
                 # random_acceleration = (
                 #     -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
                 # )
-                random_acceleration = (env.robot.desired_speed - env.robot.velocity_norm) / env.robot.delta_t
+                random_acceleration = (
+                    env.robot.desired_speed - env.robot.velocity_norm
+                ) / env.robot.delta_t
                 # logging.info(
                 #     f"{env.robot.velocity_norm = }, {random_acceleration = }"
                 # )

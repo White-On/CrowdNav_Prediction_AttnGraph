@@ -141,14 +141,20 @@ class Robot(Agent):
         self.theta = self.limit_theta_change(desired_theta)
         self.orientation += self.compute_orientation()
         # avoid computing those twice
-        clipped_desired_acceleration = float(np.clip(
-            desired_acceleration, self.acceleration_limits[0], self.acceleration_limits[1]
-        ))
+        clipped_desired_acceleration = float(
+            np.clip(
+                desired_acceleration,
+                self.acceleration_limits[0],
+                self.acceleration_limits[1],
+            )
+        )
         vector_direction = np.array(
             [np.cos(self.orientation), np.sin(self.orientation)]
         )
 
-        self.acceleration = self.compute_acceleration(clipped_desired_acceleration, vector_direction)
+        self.acceleration = self.compute_acceleration(
+            clipped_desired_acceleration, vector_direction
+        )
         self.velocity_norm = self.compute_velocity_norm(clipped_desired_acceleration)
         self.speed = self.limit_speed(vector_direction)
         self.coordinates = self.compute_position()
@@ -162,16 +168,21 @@ class Robot(Agent):
 
         return np.clip(desired_theta, lower_limit, upper_limit)
 
-    def compute_acceleration(self, desired_acceleration: float, vector_direction: np.array) -> np.array:
+    def compute_acceleration(
+        self, desired_acceleration: float, vector_direction: np.array
+    ) -> np.array:
         return desired_acceleration * vector_direction
 
-    def compute_velocity_norm(self, pseudo_acceleration:float) -> float:
+    def compute_velocity_norm(self, pseudo_acceleration: float) -> float:
         new_velocity_norm = self.velocity_norm + pseudo_acceleration * self.delta_t
         # we clip the speed norm between the speed limits
-        return float(np.clip(
-            new_velocity_norm, a_min=self.speed_norm_limit[0], a_max=self.speed_norm_limit[1]
-        ))
-    
+        return float(
+            np.clip(
+                new_velocity_norm,
+                a_min=self.speed_norm_limit[0],
+                a_max=self.speed_norm_limit[1],
+            )
+        )
 
     def limit_speed(self, vector_direction: np.array) -> list:
         return (self.velocity_norm * vector_direction).tolist()
@@ -254,6 +265,14 @@ class Robot(Agent):
         return np.concatenate(
             (self.velocity_norm, self.theta, relative_goal_coordinates), axis=None
         ).tolist()
+
+    def is_outside_arena(self, arena_side: float) -> bool:
+        return (
+            self.coordinates[0] > arena_side
+            or self.coordinates[1] > arena_side
+            or self.coordinates[0] < -arena_side
+            or self.coordinates[1] < -arena_side
+        )
 
 
 def global_to_relative(

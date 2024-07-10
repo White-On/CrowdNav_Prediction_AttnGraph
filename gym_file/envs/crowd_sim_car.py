@@ -410,6 +410,8 @@ class CrowdSimCar(gym.Env):
         progression_toward_goal_reward = self.compute_progression_toward_goal_reward(
             current_distance_from_goal, self.past_distance_from_goal
         )
+        is_robot_outside_arena = self.robot.is_outside_arena(self.arena_size)
+        outside_arena_reward = -50 if is_robot_outside_arena else 0
 
         self.past_distance_from_goal = current_distance_from_goal
 
@@ -419,6 +421,7 @@ class CrowdSimCar(gym.Env):
         angular_factor = 2
         proximity_factor = 0
         progression_toward_goal_factor = 30
+        outside_arena_factor = 1
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -426,6 +429,7 @@ class CrowdSimCar(gym.Env):
         angular_reward *= angular_factor
         proximity_reward *= proximity_factor
         progression_toward_goal_reward *= progression_toward_goal_factor
+        outside_arena_reward *= outside_arena_factor
 
         reward = (
             collision_reward
@@ -434,6 +438,7 @@ class CrowdSimCar(gym.Env):
             + angular_reward
             + proximity_reward
             + progression_toward_goal_reward
+            + outside_arena_reward
         )
 
         logging.debug(

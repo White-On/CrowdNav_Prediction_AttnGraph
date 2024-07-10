@@ -11,7 +11,7 @@ from logger import logging_setup
 def main():
     logging_setup("PPO_evaluation.log", level=logging.INFO)
     episode_time = 500
-    eval = True
+    eval = False
     total_timesteps = 5_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
@@ -26,7 +26,7 @@ def main():
     #     "load_scenario": None,
     # }
     # vec_env = make_vec_env("CrowdSimCar-v0", n_envs=1, env_kwargs=env_kwargs)
-    
+
     env = gym.make(
         "CrowdSimCar-v0",
         render_mode="human",
