@@ -140,13 +140,17 @@ class Robot(Agent):
         desired_acceleration, desired_theta = action
         self.theta = self.limit_theta_change(desired_theta)
         self.orientation += self.compute_orientation()
-        logging.info(f"{np.degrees(self.orientation) = }")
-        self.acceleration = self.limit_acceleration_change(desired_acceleration)
-        # logging.info(f"{self.speed = }, {np.linalg.norm(self.speed) = }")
-        self.speed += self.acceleration
-        # logging.info(f"{self.speed = }, {np.linalg.norm(self.speed) = }")
-        self.speed = self.limit_speed(self.speed)
-        self.velocity_norm = np.linalg.norm(self.speed)
+        # avoid computing those twice
+        clipped_desired_acceleration = float(np.clip(
+            desired_acceleration, self.acceleration_limits[0], self.acceleration_limits[1]
+        ))
+        vector_direction = np.array(
+            [np.cos(self.orientation), np.sin(self.orientation)]
+        )
+
+        self.acceleration = self.compute_acceleration(clipped_desired_acceleration, vector_direction)
+        self.velocity_norm = self.compute_velocity_norm(clipped_desired_acceleration)
+        self.speed = self.limit_speed(vector_direction)
         self.coordinates = self.compute_position()
 
     def limit_theta_change(self, desired_theta: float) -> float:
@@ -158,32 +162,19 @@ class Robot(Agent):
 
         return np.clip(desired_theta, lower_limit, upper_limit)
 
-    def limit_acceleration_change(self, desired_acceleration: float) -> np.array:
-        # same comment as the previous method
-        clipped_acceleration_norm = np.clip(
-            desired_acceleration,
-            self.acceleration_limits[0],
-            self.acceleration_limits[1],
-        )
-        # we take the direction of the acceleration
-        vector_direction = np.array(
-            [np.cos(self.orientation), np.sin(self.orientation)]
-        )
-        vector_direction = vector_direction / np.linalg.norm(vector_direction)
+    def compute_acceleration(self, desired_acceleration: float, vector_direction: np.array) -> np.array:
+        return desired_acceleration * vector_direction
 
-        return clipped_acceleration_norm * vector_direction
+    def compute_velocity_norm(self, pseudo_acceleration:float) -> float:
+        new_velocity_norm = self.velocity_norm + pseudo_acceleration * self.delta_t
+        # we clip the speed norm between the speed limits
+        return float(np.clip(
+            new_velocity_norm, a_min=self.speed_norm_limit[0], a_max=self.speed_norm_limit[1]
+        ))
+    
 
-    def limit_speed(self, speed: np.array) -> list:
-        # clip the speed norm between the speed limits
-        speed_norm = np.linalg.norm(speed)
-        if speed_norm == 0:
-            return speed.tolist()
-        clipped_speed_norm = np.clip(
-            speed_norm, a_min=self.speed_norm_limit[0], a_max=self.speed_norm_limit[1]
-        )
-        # we take the direction of the speed
-        normalized_speed = speed / speed_norm
-        return (clipped_speed_norm * normalized_speed).tolist()
+    def limit_speed(self, vector_direction: np.array) -> list:
+        return (self.velocity_norm * vector_direction).tolist()
 
     def compute_orientation(self) -> float:
         orientation = (
@@ -206,11 +197,6 @@ class Robot(Agent):
         # self.x += v * np.cos(self.theta) * dt
         # self.y += v * np.sin(self.theta) * dt
         # self.theta += (v / self.L) * np.tan(delta) * dt
-
-    def compute_speed_vector(self) -> list:
-        v_x = self.velocity_norm * np.cos(self.orientation)
-        v_y = self.velocity_norm * np.sin(self.orientation)
-        return [v_x, v_y]
 
     def get_angle_from_goal(self) -> float:
         goal_coordinate = self.get_current_visible_goal()

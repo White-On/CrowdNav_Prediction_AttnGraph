@@ -21,9 +21,9 @@ def main():
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
         "CrowdSimCar-v0",
-        render_mode="debug",
+        render_mode="human",
         episode_time=num_steps,
-        nb_pedestrians=0,
+        nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
         load_scenario=None,
@@ -42,13 +42,14 @@ def main():
             action = env.robot.predict_what_to_do()
             if random_behavior:
                 random_angle = np.random.uniform(-np.pi / 6, np.pi / 6)
-                # random_acceleration = np.random.uniform(-0.2, 0.2)
-                random_acceleration = (
-                    -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
-                )
-                logging.info(
-                    f"{env.robot.velocity_norm = }, {random_acceleration = }"
-                )
+                # random_acceleration = np.random.uniform(-0.2, 0.5)
+                # random_acceleration = (
+                #     -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
+                # )
+                random_acceleration = (env.robot.desired_speed - env.robot.velocity_norm) / env.robot.delta_t
+                # logging.info(
+                #     f"{env.robot.velocity_norm = }, {random_acceleration = }"
+                # )
                 action[0] = random_acceleration
                 # action[1] = random_angle
 
