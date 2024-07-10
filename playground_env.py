@@ -21,9 +21,9 @@ def main():
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
     env = gym.make(
         "CrowdSimCar-v0",
-        render_mode="human",
+        render_mode="debug",
         episode_time=num_steps,
-        nb_pedestrians=10,
+        nb_pedestrians=0,
         disable_env_checker=True,
         robot_is_visible=True,
         load_scenario=None,
@@ -46,6 +46,9 @@ def main():
                 random_acceleration = (
                     -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
                 )
+                logging.info(
+                    f"{env.robot.velocity_norm = }, {random_acceleration = }"
+                )
                 action[0] = random_acceleration
                 # action[1] = random_angle
 
@@ -60,9 +63,9 @@ def main():
             #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info['info']}"
             # )
             if done:
-                # logging.info(
-                #     f"Episode {episode+1} finished at step {step+1}, status: {info['info']}"
-                # )
+                logging.info(
+                    f"Episode {episode+1} finished at step {step+1}, status: {info['info']}"
+                )
                 if save:
                     log_results_episodes["episode"].append(episode)
                     log_results_episodes["status"].append(info["info"])

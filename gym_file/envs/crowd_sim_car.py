@@ -297,9 +297,10 @@ class CrowdSimCar(gym.Env):
         observation["graph_features"] = self.global_to_relative(
             observation["graph_features"].reshape(-1, 2), robot_position, robot_rotation
         )
-        observation["graph_features"] = observation["graph_features"].reshape(
-            nb_humans_in_simulation, -1
-        )
+        if nb_humans_in_simulation != 0:
+            observation["graph_features"] = observation["graph_features"].reshape(
+                nb_humans_in_simulation, -1
+            )
 
         list_of_visible_humans = visible_agent_by_robot.apply(lambda x: x.id)
         visibility_mask = [

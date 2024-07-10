@@ -139,11 +139,14 @@ class Robot(Agent):
         """Action is a list with the acceleration and wheel orientation theta"""
         desired_acceleration, desired_theta = action
         self.theta = self.limit_theta_change(desired_theta)
+        self.orientation += self.compute_orientation()
+        logging.info(f"{np.degrees(self.orientation) = }")
         self.acceleration = self.limit_acceleration_change(desired_acceleration)
+        # logging.info(f"{self.speed = }, {np.linalg.norm(self.speed) = }")
         self.speed += self.acceleration
+        # logging.info(f"{self.speed = }, {np.linalg.norm(self.speed) = }")
         self.speed = self.limit_speed(self.speed)
         self.velocity_norm = np.linalg.norm(self.speed)
-        self.orientation += self.compute_orientation()
         self.coordinates = self.compute_position()
 
     def limit_theta_change(self, desired_theta: float) -> float:
@@ -166,6 +169,8 @@ class Robot(Agent):
         vector_direction = np.array(
             [np.cos(self.orientation), np.sin(self.orientation)]
         )
+        vector_direction = vector_direction / np.linalg.norm(vector_direction)
+
         return clipped_acceleration_norm * vector_direction
 
     def limit_speed(self, speed: np.array) -> list:

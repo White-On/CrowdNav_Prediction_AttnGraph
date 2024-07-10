@@ -11,13 +11,13 @@ fi
 # Si le premier argument est PPO ou DDPG, utilisez ce modèle
 # on prendra PPO par défaut
 if [ "$1" == "PPO" ]; then
-    PYTHON_SCRIPT_PATH=$PPO_PYTHON_SCRIPT_PATH
+    PYTHON_SCRIPT_PATH=$PPO_SCRIPT_PATH
     echo "PPO"
 elif [ "$1" == "DDPG" ]; then
-    PYTHON_SCRIPT_PATH=$DDPG_PYTHON_SCRIPT_PATH
+    PYTHON_SCRIPT_PATH=$DDPG_SCRIPT_PATH
     echo "DDPG"
 else
-    PYTHON_SCRIPT_PATH=$PPO_PYTHON_SCRIPT_PATH
+    PYTHON_SCRIPT_PATH=$PPO_SCRIPT_PATH
     echo "default PPO"
 fi
 

@@ -11,7 +11,7 @@ from logger import logging_setup
 def main():
     logging_setup("PPO_evaluation.log", level=logging.INFO)
     episode_time = 500
-    eval = False
+    eval = True
     total_timesteps = 5_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
