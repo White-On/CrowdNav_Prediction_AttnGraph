@@ -69,7 +69,7 @@ class CrowdSimCar(gym.Env):
         self.past_distance_from_goal = None
 
         for _ in range(nb_pedestrians):
-            Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
+            Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range, desired_speed=0.7)
 
         self.goal_threshold_distance = self.robot.radius
 

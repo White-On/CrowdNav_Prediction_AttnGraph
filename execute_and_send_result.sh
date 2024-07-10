@@ -16,6 +16,9 @@ if [ "$1" == "PPO" ]; then
 elif [ "$1" == "DDPG" ]; then
     PYTHON_SCRIPT_PATH=$DDPG_SCRIPT_PATH
     echo "DDPG"
+elif [ "$1" == "REC_PPO" ]; then
+    PYTHON_SCRIPT_PATH=$REC_PPO_SCRIPT_PATH
+    echo "REC_PPO"
 else
     PYTHON_SCRIPT_PATH=$PPO_SCRIPT_PATH
     echo "default PPO"
