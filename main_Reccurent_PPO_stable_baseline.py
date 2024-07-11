@@ -9,13 +9,13 @@ from logger import logging_setup
 
 
 def main():
-    logging_setup("Recurrent_PPO_evaluation.log", level=logging.INFO)
+    logging_setup("Recurrent_PPO_evaluation.log", level=logging.DEBUG)
     episode_time = 500
     eval = False
-    total_timesteps = 5_000_000
+    total_timesteps = 1_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
-    model_file = "recurent_ppo_CrowdSimCar"
+    model_file = "recurrent_ppo_CrowdSimCar"
 
     env = gym.make(
         "CrowdSimCar-v0",
@@ -23,7 +23,7 @@ def main():
         episode_time=episode_time,
         nb_pedestrians=10,
         disable_env_checker=True,
-        load_scenario=None,
+        load_scenario="random",
     )
 
     model = RecurrentPPO(
@@ -54,7 +54,7 @@ def main():
     for i in range(nb_learnging_cycles):
         model.learn(
             total_timesteps=save_every_n_timesteps,
-            log_interval=1,
+            log_interval=5,
             progress_bar=True,
             reset_num_timesteps=False,
         )

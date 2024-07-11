@@ -66,6 +66,7 @@ class CrowdSimCar(gym.Env):
             nb_goals=5,
         )
 
+        # for reward progression
         self.past_distance_from_goal = None
 
         for _ in range(nb_pedestrians):
@@ -336,7 +337,7 @@ class CrowdSimCar(gym.Env):
             ]
         )
 
-        return np.exp((distance_to_closest_human - dr) / dr)
+        return np.exp((distance_to_closest_human - dr) / dr) * vehicle_current_speed
 
     # OLD FORMULA
     # def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:

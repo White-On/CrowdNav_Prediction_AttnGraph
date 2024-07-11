@@ -11,7 +11,7 @@ def main():
     logging_setup("PPO_evaluation.log", level=logging.DEBUG)
     episode_time = 500
     eval = False
-    total_timesteps = 5_000_000
+    total_timesteps = 1_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = "ppo_CrowdSimCar" 
@@ -22,7 +22,7 @@ def main():
         episode_time=episode_time,
         nb_pedestrians=10,
         disable_env_checker=True,
-        load_scenario=None,
+        load_scenario="random",
     )
 
     model = PPO(
