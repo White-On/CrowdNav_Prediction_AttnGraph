@@ -13,7 +13,7 @@ def main():
     log_file = "env_experiment.log"
     logging_setup(log_file, level=logging.INFO)
 
-    num_steps = 200
+    num_steps = 500
     random_behavior = True
     num_episodes = 1
     # logging.info(gym.envs.registry.keys())
@@ -26,7 +26,7 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
-        load_scenario="random",
+        load_scenario="random   ",
     )
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False

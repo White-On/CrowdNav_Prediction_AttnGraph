@@ -838,17 +838,26 @@ class CrowdSimCar(gym.Env):
         normal_point = path[0] + d * b / np.linalg.norm(b)
         distance_to_path = np.linalg.norm(position - normal_point)
         # print(f"Distance to path: {distance_to_path}")
-        return distance_to_path
+        return distance_to_path 
 
     def load_front_scenario(self):
         """
         Load the front scenario
         """
         logging.debug("Loading front scenario")
+
+        # in order to make this senario invariant by rotation we 
+        # take a random point and create a mirror point passing by the origin
+        # an at a distance of x 
+        start_point = np.random.uniform(-5, 5, 2)
+        x = 8
+        direction = -start_point / np.linalg.norm(start_point)
+        end_point = direction * x + start_point
+
         self.robot.reset()
-        self.robot.coordinates = [-5, 0]
-        self.robot.orientation = 0
-        self.robot.collection_goal_coordinates = [[5, 0]]
+        self.robot.coordinates = start_point.tolist()
+        self.robot.orientation = float(np.random.uniform(-np.pi, np.pi))
+        self.robot.collection_goal_coordinates = [end_point.tolist()]
         self.robot.current_goal_cusor = 0
         self.robot.path = self.robot.create_path()
 
@@ -856,10 +865,10 @@ class CrowdSimCar(gym.Env):
             logging.warning("No human in the simulation")
 
         human_coordinates = np.random.multivariate_normal(
-            [5, 0], np.eye(2), len(Human.HUMAN_LIST)
+            end_point, np.eye(2), len(Human.HUMAN_LIST)
         ).tolist()
         human_goal_coordinates = np.random.multivariate_normal(
-            [-5, 0], np.eye(2), len(Human.HUMAN_LIST)
+            start_point, np.eye(2), len(Human.HUMAN_LIST)
         ).tolist()
         for i, human in enumerate(Human.HUMAN_LIST):
             human.reset()
@@ -872,10 +881,20 @@ class CrowdSimCar(gym.Env):
         Load the back scenario
         """
         logging.debug("Loading back scenario")
+
+        # in order to make this senario invariant by rotation we 
+        # take a random point and create a mirror point passing by the origin
+        # an at a distance of x 
+        start_point = np.random.uniform(-5, 5, 2)
+        x = 8
+        direction = -start_point / np.linalg.norm(start_point)
+        end_point = direction * x + start_point
+        start_point_pedestrian = direction * 3 + start_point
+
         self.robot.reset()
-        self.robot.coordinates = [-5, 0]
-        self.robot.orientation = 0
-        self.robot.collection_goal_coordinates = [[5, 0]]
+        self.robot.coordinates = start_point.tolist()
+        self.robot.orientation = float(np.random.uniform(-np.pi, np.pi))
+        self.robot.collection_goal_coordinates = [end_point.tolist()]
         self.robot.current_goal_cusor = 0
         self.robot.path = self.robot.create_path()
 
@@ -883,10 +902,10 @@ class CrowdSimCar(gym.Env):
             logging.warning("No human in the simulation")
 
         human_coordinates = np.random.multivariate_normal(
-            [-2, 0], np.eye(2), len(Human.HUMAN_LIST)
+            start_point_pedestrian, np.eye(2), len(Human.HUMAN_LIST)
         ).tolist()
         human_goal_coordinates = np.random.multivariate_normal(
-            [5, 0], np.eye(2), len(Human.HUMAN_LIST)
+            end_point, np.eye(2), len(Human.HUMAN_LIST)
         ).tolist()
         for i, human in enumerate(Human.HUMAN_LIST):
             human.reset()
