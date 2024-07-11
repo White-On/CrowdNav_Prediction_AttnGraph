@@ -15,7 +15,7 @@ from logger import logging_setup
 
 def main():
     logging_setup("DDPG_evaluation.log", level=logging.DEBUG)
-    episode_time = 500
+    episode_time = 200
     eval = False
     total_timesteps = 1_000_000
     save_every_n_timesteps = 10_000

@@ -1,9 +1,16 @@
 import logging
+import gymnasium as gym
 
 from rich.logging import RichHandler
 
 
 def logging_setup(log_file: str, level=logging.INFO):
+
+    if level == logging.DEBUG:
+        gym.logger.set_level(40)
+        matplotlib_logger = logging.getLogger("matplotlib")
+        matplotlib_logger.setLevel(logging.WARNING)
+        
     logger = logging.getLogger(__name__)
 
     shell_handler = RichHandler()

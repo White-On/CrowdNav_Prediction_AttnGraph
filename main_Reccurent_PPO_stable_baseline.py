@@ -10,9 +10,9 @@ from logger import logging_setup
 
 def main():
     logging_setup("Recurrent_PPO_evaluation.log", level=logging.DEBUG)
-    episode_time = 500
+    episode_time = 200
     eval = False
-    total_timesteps = 1_000_000
+    total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = "recurrent_ppo_CrowdSimCar"

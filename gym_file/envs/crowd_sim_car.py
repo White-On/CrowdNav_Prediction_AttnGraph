@@ -420,7 +420,7 @@ class CrowdSimCar(gym.Env):
 
         collision_factor = 2
         near_collision_factor = 2
-        speed_factor = 8
+        speed_factor = 4
         angular_factor = 0
         proximity_factor = 0
         progression_toward_goal_factor = 30
@@ -444,17 +444,6 @@ class CrowdSimCar(gym.Env):
             + outside_arena_reward
         )
 
-        logging.debug(
-            f"💥collision_reward: {collision_reward:>7.2f},\n\
-                    🚸 near_collision_reward: {near_collision_reward:>7.2f},\n\
-                    🚀 speed_reward: {speed_reward:>7.2f},\n\
-                    📐 angular_reward: {angular_reward:>7.2f},\n\
-                    🤏 proximity_reward: {proximity_reward:>7.2f},\n\
-                    📈 progression_toward_goal_reward: {progression_toward_goal_reward:>7.2f},\n\
-                    🏞️ outside_arena_reward: {outside_arena_reward:>7.2f},\n\
-                    🏆 reward: {reward:>7.2f}"
-        )
-
         if save_in_file:
             with open("reward.csv", "a") as f:
                 f.write(
@@ -463,8 +452,8 @@ class CrowdSimCar(gym.Env):
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
-        reward_all_goals_reached = 50
-        reward_single_goal_reached = 20
+        reward_all_goals_reached = 200
+        reward_single_goal_reached = 100
 
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:
@@ -496,6 +485,18 @@ class CrowdSimCar(gym.Env):
         else:
             done = False
             episode_info = "Nothing"
+
+        logging.debug(
+            f"💥collision_reward: {collision_reward:>7.2f},\n\
+                    🚸 near_collision_reward: {near_collision_reward:>7.2f},\n\
+                    🚀 speed_reward: {speed_reward:>7.2f},\n\
+                    📐 angular_reward: {angular_reward:>7.2f},\n\
+                    🤏 proximity_reward: {proximity_reward:>7.2f},\n\
+                    📈 progression_toward_goal_reward: {progression_toward_goal_reward:>7.2f},\n\
+                    🏞️ outside_arena_reward: {outside_arena_reward:>7.2f},\n\
+                    🥅 is goal reached: {is_robot_reach_goal},\n\
+                    🏆 reward: {reward:>7.2f}"
+        )
 
         return reward, done, episode_info
 
