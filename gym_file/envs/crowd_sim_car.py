@@ -420,7 +420,7 @@ class CrowdSimCar(gym.Env):
         collision_factor = 4
         near_collision_factor = 0.5
         speed_factor = 4
-        angular_factor = 2
+        angular_factor = 0
         proximity_factor = 0
         progression_toward_goal_factor = 30
         outside_arena_factor = 1

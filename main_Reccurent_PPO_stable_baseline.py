@@ -27,11 +27,18 @@ def main():
         robot_is_visible=True,
     )
 
+    def linear_schedule(initial_value: float):
+        def func(progress_remaining: float) -> float:
+            return progress_remaining * initial_value
+
+        return func
+
     model = RecurrentPPO(
         "MultiInputLstmPolicy",
         env,
         verbose=1,
         tensorboard_log="runs",
+        learning_rate=linear_schedule(1e-3),
     )
 
     if eval:
