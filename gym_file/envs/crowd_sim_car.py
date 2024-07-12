@@ -292,7 +292,7 @@ class CrowdSimCar(gym.Env):
 
         observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
         # logging.info(f'{observation["graph_features"].shape}')
-        logging.debug(f"🔵 observation: {observation}")
+        # logging.debug(f"🔵 observation: {observation}")
         return observation
 
     def compute_collision_reward(self, distance_from_human: float) -> float:

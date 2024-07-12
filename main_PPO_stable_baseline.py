@@ -1,5 +1,6 @@
 from stable_baselines3 import PPO
 import gymnasium as gym
+import argparse
 
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
@@ -8,9 +9,19 @@ from logger import logging_setup
 
 
 def main():
-    logging_setup("PPO_evaluation.log", level=logging.DEBUG)
+     # parse arguments
+    parser = argparse.ArgumentParser()
+    # mode eval ou pas
+    parser.add_argument("-e", "--eval", action='store_true')
+    # pour le logger le niveau
+    parser.add_argument("-v", "--verbose", action='store_true')
+    # nom fichier log tensorflow
+    parser.add_argument("-l", "--log", type=str, default="PPO")
+    args = parser.parse_args()
+
+    logging_setup("PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO)
     episode_time = 200
-    eval = False
+    eval = True if args.eval else False
     total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
@@ -38,7 +49,7 @@ def main():
         env,
         verbose=1,
         tensorboard_log="runs",
-        learning_rate=linear_schedule(1e-3),
+        # learning_rate=linear_schedule(1e-3),
     )
 
     if eval:
@@ -59,6 +70,7 @@ def main():
             log_interval=1,
             progress_bar=True,
             reset_num_timesteps=False,
+            tb_log_name=args.log,
         )
         model.save(model_file)
 

@@ -23,7 +23,7 @@ def main():
         "CrowdSimCar-v0",
         render_mode="human",
         episode_time=num_steps,
-        nb_pedestrians=10,
+        nb_pedestrians=0,
         disable_env_checker=True,
         robot_is_visible=True,
         load_scenario=None,
@@ -38,6 +38,7 @@ def main():
     for episode in range(num_episodes):
         env.reset()
         env.render()
+        total_reward = 0
 
         for step in range(num_steps):
             action = env.robot.predict_what_to_do()
@@ -57,6 +58,7 @@ def main():
                 # action[1] = random_angle
 
             obs, reward, done, truncated, info = env.step(action)
+            total_reward += reward
             env.render()
 
             if isinstance(obs, list):
@@ -76,7 +78,8 @@ def main():
                     log_results_episodes["reward"].append(reward)
                     log_results_episodes["steps"].append(step + 1)
                 # break
-
+        
+        logging.info(f"Total reward: {total_reward:.2f}")
     env.close()
     if save:
         pd.DataFrame(log_results_episodes).to_csv(log_file, index=False)
