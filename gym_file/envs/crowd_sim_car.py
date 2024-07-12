@@ -132,7 +132,7 @@ class CrowdSimCar(gym.Env):
         observation_space["visible_masks"] = gymnasium.spaces.Box(
             low=-np.inf, high=np.inf, shape=(nb_humans,), dtype=np.float32
         )
-
+        # logging.info(f"🔵 observation_space: {observation_space}")
         return gymnasium.spaces.Dict(observation_space)
 
     def define_action_space(self) -> gymnasium.spaces.Box:
@@ -296,12 +296,19 @@ class CrowdSimCar(gym.Env):
         # observation['graph_features'][-1] = robot_future_traj
 
         # observation["graph_features"] = observation["graph_features"] - robot_position
+
         observation["graph_features"] = self.global_to_relative(
             observation["graph_features"].reshape(-1, 2), robot_position, robot_rotation
         )
+        # logging.info(f"graph_features: {observation['graph_features'].shape}")
+
         if nb_humans_in_simulation != 0:
             observation["graph_features"] = observation["graph_features"].reshape(
                 nb_humans_in_simulation, -1
+            )
+        else:
+            observation["graph_features"] = np.zeros(
+                (0, self.nb_time_steps_seen_as_graph_feature * 2)
             )
 
         list_of_visible_humans = visible_agent_by_robot.apply(lambda x: x.id)
@@ -310,7 +317,7 @@ class CrowdSimCar(gym.Env):
             for human in Human.HUMAN_LIST
         ]
         observation["visible_masks"] = visibility_mask
-
+        # logging.debug(f"🔵 observation: {observation}")
         return observation
 
     def compute_collision_reward(self, distance_from_human: float) -> float:
