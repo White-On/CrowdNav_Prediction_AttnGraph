@@ -55,6 +55,7 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
+        self.context_max_size = 15
 
         sensor_range = 4
         self.robot = Robot(
@@ -115,6 +116,8 @@ class CrowdSimCar(gym.Env):
         # objectives_boundries = np.full((forseen_index, 2), [-10,10])
         # all_boundries = np.vstack((vehicle_speed_boundries, vehicle_angle_boundries, objectives_boundries))
         # observation_space['robot_node'] = gymnasium.spaces.Box(low= all_boundries[:,0], high=all_boundries[:,1], dtype=np.float32)
+        # current position -> 2 coordinates
+        # goal position -> 2 coordinates * forseen_index <- how many steps we want to see in the future
         observation_space["robot_node"] = gymnasium.spaces.Box(
             low=-np.inf, high=np.inf, shape=(2 + forseen_index * 2,), dtype=np.float32
         )
@@ -122,17 +125,15 @@ class CrowdSimCar(gym.Env):
         # predictions only include mu_x, mu_y (or px, py)
         spatial_edge_dim = int(2 * (nb_graph_feature))
 
+        # Here this should be a graph to go inside the GNN but for now we will use a matrix
+        # To make sure there wont be any overload, we use the context_max_size
         observation_space["graph_features"] = gymnasium.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(nb_humans, spatial_edge_dim),
+            shape=(self.context_max_size, spatial_edge_dim),
             dtype=np.float32,
         )
-
-        observation_space["visible_masks"] = gymnasium.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(nb_humans,), dtype=np.float32
-        )
-        # logging.info(f"🔵 observation_space: {observation_space}")
+        logging.debug(f'{observation_space}')
         return gymnasium.spaces.Dict(observation_space)
 
     def define_action_space(self) -> gymnasium.spaces.Box:
@@ -256,68 +257,45 @@ class CrowdSimCar(gym.Env):
 
         # graph features: future position of every human + robot
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
-        observation["graph_features"] = np.zeros(
-            (nb_humans_in_simulation, (self.nb_time_steps_seen_as_graph_feature), 2)
+        observation["graph_features"] = np.full(
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), np.inf
         )
-        # logging.info(f"graph_features: {observation['graph_features'].shape}")
 
         visible_agent_by_robot = agent_visible.filter(
             lambda x: x.id != self.robot.id
         ).filter(self.robot.can_i_see)
 
-        for i, human in enumerate(Human.HUMAN_LIST):
-            if human.id in visible_agent_by_robot.apply(lambda x: x.id):
-                direction_vector = np.array(human.speed)
-                direction_vector *= self.time_step
-                # with the vector we calculate the n future positions
-                human_position = np.array(human.get_position())
-                direction_vector = np.tile(
-                    direction_vector, self.nb_time_steps_seen_as_graph_feature
-                ).reshape(-1, 2) * np.arange(
-                    0, self.nb_time_steps_seen_as_graph_feature
-                ).reshape(
-                    -1, 1
-                )
-                human_future_traj = human_position + direction_vector
-            else:
-                # the visibility mask will make sure that the invisible humans are not considered
-                human_future_traj = np.zeros(
-                    (self.nb_time_steps_seen_as_graph_feature, 2)
-                )
-            observation["graph_features"][i] = human_future_traj
+        # amoung the visible agent, we take only the context_max_size closest agents
+        visible_agent_by_robot = visible_agent_by_robot.sort(
+            lambda x: self.distance_matrix[self.robot.id][x.id]
+        ).limit(self.context_max_size
+        ).get_all()
 
         # transform the graph features into relative coordinates
-        # TODO/WARNING: Giving the robot relative position of the robot itself
-        # does not make sense will be 0 0 everytime
         robot_position = np.array(self.robot.get_position())
         robot_rotation = self.robot.orientation
-        # add robot future traj
-        # robot_future_traj = np.tile(self.robot.speed, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 2) * np.arange(0, self.nb_time_steps_seen_as_graph_feature).reshape(-1, 1)
-        # observation['graph_features'][-1] = robot_future_traj
 
-        # observation["graph_features"] = observation["graph_features"] - robot_position
-
-        observation["graph_features"] = self.global_to_relative(
-            observation["graph_features"].reshape(-1, 2), robot_position, robot_rotation
-        )
-        # logging.info(f"graph_features: {observation['graph_features'].shape}")
-
-        if nb_humans_in_simulation != 0:
-            observation["graph_features"] = observation["graph_features"].reshape(
-                nb_humans_in_simulation, -1
+        for i, human in enumerate(visible_agent_by_robot):
+            direction_vector = np.array(human.speed)
+            direction_vector *= self.time_step
+            # with the vector we calculate the n future positions
+            human_position = np.array(human.get_position())
+            direction_vector = np.tile(
+                direction_vector, self.nb_time_steps_seen_as_graph_feature
+            ).reshape(-1, 2) * np.arange(
+                0, self.nb_time_steps_seen_as_graph_feature
+            ).reshape(
+                -1, 1
             )
-        else:
-            observation["graph_features"] = np.zeros(
-                (0, self.nb_time_steps_seen_as_graph_feature * 2)
+            human_future_traj = human_position + direction_vector
+            observation["graph_features"][i] = self.global_to_relative(
+                human_future_traj.reshape(-1, 2), robot_position, robot_rotation
             )
 
-        list_of_visible_humans = visible_agent_by_robot.apply(lambda x: x.id)
-        visibility_mask = [
-            True if human.id in list_of_visible_humans else False
-            for human in Human.HUMAN_LIST
-        ]
-        observation["visible_masks"] = visibility_mask
+        observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
+
         # logging.debug(f"🔵 observation: {observation}")
+        exit(1)
         return observation
 
     def compute_collision_reward(self, distance_from_human: float) -> float:
@@ -703,16 +681,40 @@ class CrowdSimCar(gym.Env):
                     ec=human_goal_color,
                 )
 
-        if self.display_future_trajectory:
-            observation = self.generate_observation()
-            predicted_positions = observation["graph_features"]
-            visible_masks = observation["visible_masks"]
-            # we remove the predicted positions with the visibility mask
-            predicted_positions = predicted_positions[visible_masks]
-            predicted_positions_global_rep = self.relative_to_global(
-                predicted_positions.reshape(-1, 2),
-                [robotX, robotY],
-                self.robot.orientation,
+        if self.display_future_trajectory and len(Human.HUMAN_LIST) != 0:
+            # observation = self.generate_observation()
+            # predicted_positions = observation["graph_features"]
+            # visible_masks = observation["visible_masks"]
+            # # we remove the predicted positions with the visibility mask
+            # predicted_positions = predicted_positions[visible_masks]
+            # predicted_positions_global_rep = self.relative_to_global(
+            #     predicted_positions.reshape(-1, 2),
+            #     [robotX, robotY],
+            #     self.robot.orientation,
+            # )
+            agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
+            visible_agent_by_robot = agent_visible.filter(
+                lambda x: x.id != self.robot.id
+            ).filter(self.robot.can_i_see).get_all()
+            predicted_positions_global_rep = np.zeros(
+                (len(visible_agent_by_robot), self.nb_time_steps_seen_as_graph_feature, 2)
+            )
+            for i, agent in enumerate(visible_agent_by_robot):
+                direction_vector = np.array(agent.speed)
+                direction_vector *= self.time_step
+                # with the vector we calculate the n future positions
+                human_position = np.array(agent.get_position())
+                direction_vector = np.tile(
+                    direction_vector, self.nb_time_steps_seen_as_graph_feature
+                ).reshape(-1, 2) * np.arange(
+                    0, self.nb_time_steps_seen_as_graph_feature
+                ).reshape(
+                    -1, 1
+                )
+                predicted_positions_global_rep[i] = human_position + direction_vector
+
+            predicted_positions_global_rep = predicted_positions_global_rep.reshape(
+                -1, 2
             )
             # just keept this code for fun vizualisation
 

@@ -22,9 +22,10 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         nb_pedestrians=10,
         episode_time=100,
         time_step=0.1,
-        display_future_trajectory=False,
+        display_future_trajectory=True,
         robot_is_visible=False,
         load_scenario=None,
+        nb_goals_agent = 5,
     ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -61,7 +62,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
             nb_forseen_goal=self.nb_forseen_goal,
             is_visible=robot_is_visible,
             radius=0.3,
-            nb_goals=5,
+            nb_goals=nb_goals_agent,
         )
         for _ in range(nb_pedestrians):
             Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range)
