@@ -190,7 +190,6 @@ class CrowdSimCar(gym.Env):
         robot_action = np.clip(
             robot_action, self.action_space.low, self.action_space.high
         )
-
         # compute reward and episode info
         reward, done, episode_info = self.calc_reward()
 
@@ -250,7 +249,6 @@ class CrowdSimCar(gym.Env):
         """Generate observation for reset and step functions"""
 
         observation = {}
-        nb_humans_in_simulation = len(Human.HUMAN_LIST)
         agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
         # robot node: current speed, theta (wheel angle), objectives coordinates -> x and y coordinates * forseen_index
         observation["robot_node"] = np.array(self.robot.get_robot_state())
@@ -258,7 +256,7 @@ class CrowdSimCar(gym.Env):
         # graph features: future position of every human + robot
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         observation["graph_features"] = np.full(
-            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), np.inf
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), 255.0
         )
 
         visible_agent_by_robot = agent_visible.filter(
@@ -293,9 +291,8 @@ class CrowdSimCar(gym.Env):
             )
 
         observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
-
-        # logging.debug(f"🔵 observation: {observation}")
-        exit(1)
+        # logging.info(f'{observation["graph_features"].shape}')
+        logging.debug(f"🔵 observation: {observation}")
         return observation
 
     def compute_collision_reward(self, distance_from_human: float) -> float:
