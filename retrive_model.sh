@@ -20,3 +20,7 @@ for model in "${models[@]}"; do
   echo "Copie du modèle appris à partir de $REMOTE_MODEL_PATH vers $LOCAL_MODEL_PATH..."
   scp -r -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST:$model ./
 done
+
+# Fermez la connexion SSH persistante
+echo "Fermeture de la connexion SSH persistante..."
+ssh -O exit -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST
