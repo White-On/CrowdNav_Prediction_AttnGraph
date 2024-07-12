@@ -30,6 +30,7 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         load_scenario="random",
+        robot_is_visible=True,
     )
 
     # The noise objects for DDPG

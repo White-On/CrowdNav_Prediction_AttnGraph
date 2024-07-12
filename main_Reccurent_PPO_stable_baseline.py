@@ -24,6 +24,7 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         load_scenario="random",
+        robot_is_visible=True,
     )
 
     model = RecurrentPPO(
@@ -54,7 +55,7 @@ def main():
     for i in range(nb_learnging_cycles):
         model.learn(
             total_timesteps=save_every_n_timesteps,
-            log_interval=5,
+            log_interval=10,
             progress_bar=True,
             reset_num_timesteps=False,
         )

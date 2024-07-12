@@ -394,7 +394,6 @@ class CrowdSimCar(gym.Env):
             self.robot.velocity_norm, self.robot.desired_speed
         )
         angle_from_goal = np.abs(self.robot.get_angle_from_goal())
-        # print(f'angle_from_goal: {np.degrees(angle_from_goal)}')
         angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
 
         current_goal_coordinates = self.robot.get_current_visible_goal()
@@ -418,13 +417,14 @@ class CrowdSimCar(gym.Env):
 
         self.past_distance_from_goal = current_distance_from_goal
 
-        collision_factor = 2
-        near_collision_factor = 2
+        collision_factor = 4
+        near_collision_factor = 0.5
         speed_factor = 4
-        angular_factor = 0
+        angular_factor = 2
         proximity_factor = 0
         progression_toward_goal_factor = 30
         outside_arena_factor = 1
+        early_completion_factor = 100
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -452,8 +452,8 @@ class CrowdSimCar(gym.Env):
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
-        reward_all_goals_reached = 200
-        reward_single_goal_reached = 100
+        reward_all_goals_reached = 500
+        reward_single_goal_reached = 200
 
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:
@@ -466,6 +466,7 @@ class CrowdSimCar(gym.Env):
         if all_goals_reached:
             logging.debug("All robot goals are reached!")
             reward += reward_all_goals_reached
+            reward += (self.episode_time - self.global_time) / self.episode_time * early_completion_factor
             self.all_agent_group.reset()
 
         # logging.debug(f'🎯 distance_from_goal: {is_robot_reach_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
