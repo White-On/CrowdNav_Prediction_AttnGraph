@@ -26,7 +26,8 @@ def main():
         nb_pedestrians=10,
         disable_env_checker=True,
         robot_is_visible=True,
-        load_scenario="random",
+        load_scenario=None,
+        nb_goals_agent = 1,
     )
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False

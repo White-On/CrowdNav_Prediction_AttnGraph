@@ -10,7 +10,7 @@ from logger import logging_setup
 def main():
     logging_setup("PPO_evaluation.log", level=logging.DEBUG)
     episode_time = 200
-    eval = True
+    eval = False
     total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
@@ -20,10 +20,11 @@ def main():
         "CrowdSimCar-v0",
         render_mode="human",
         episode_time=episode_time,
-        nb_pedestrians=10,
+        nb_pedestrians=0,
         disable_env_checker=True,
-        load_scenario="random",
+        load_scenario=None,
         robot_is_visible=True,
+        nb_goals_agent = 1,
     )
 
     def linear_schedule(initial_value: float):

@@ -21,10 +21,11 @@ def main():
         "CrowdSimCar-v0",
         render_mode="human",
         episode_time=episode_time,
-        nb_pedestrians=10,
+        nb_pedestrians=0,
         disable_env_checker=True,
-        load_scenario="random",
+        load_scenario=None,
         robot_is_visible=True,
+        nb_goals_agent = 1,
     )
 
     def linear_schedule(initial_value: float):
