@@ -8,12 +8,22 @@ else
     exit 1
 fi
 
+# Fonction pour fermer la connexion SSH persistante
+cleanup() {
+    echo "Fermeture de la connexion SSH persistante..."
+    ssh -O exit -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST
+    exit 0
+}
+
 # Créez une connexion SSH persistante à la machine distante
 echo "Création d'une connexion SSH persistante à $REMOTE_USER@$REMOTE_HOST..."
 ssh -M -f -N -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST
 
-# Définir les modèles à copier
-models=("ppo_CrowdSimCar.zip" "ddpg_CrowdSimCar.zip" "recurrent_ppo_CrowdSimCar.zip")
+# # Définir les modèles à copier
+# models=("ppo_CrowdSimCar.zip" "ddpg_CrowdSimCar.zip" "recurrent_ppo_CrowdSimCar.zip")
+
+# On définis les modèle a récupéré c'est a dire tout les fichiers avec une extention .zip
+models=($(ssh -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST "ls $REMOTE_MODEL_PATH/*.zip"))
 
 # Copier chaque modèle
 for model in "${models[@]}"; do
@@ -22,5 +32,4 @@ for model in "${models[@]}"; do
 done
 
 # Fermez la connexion SSH persistante
-echo "Fermeture de la connexion SSH persistante..."
-ssh -O exit -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST
+cleanup
