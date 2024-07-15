@@ -9,3 +9,4 @@ runs/
 .env
 ssh_keys
 ssh_keys.pub
+gin_config_files/
