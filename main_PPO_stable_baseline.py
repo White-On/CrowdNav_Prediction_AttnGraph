@@ -1,4 +1,5 @@
 from stable_baselines3 import PPO
+from pathlib import Path
 import gymnasium as gym
 import argparse
 import gin
@@ -58,7 +59,12 @@ def init_model(env,
 def main():
     args = parse_args()
     logging_setup("PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO)
-    gin.parse_config_file(args.config)
+    # check if the config file exists
+    config_file_exist = Path(args.config).exists()
+    if not config_file_exist:
+        logging.warning(f"Config file {args.config} does not exist")
+    else:
+        gin.parse_config_file(args.config)
     episode_time = 200
     eval = True if args.eval else False
     total_timesteps = 2_000_000
