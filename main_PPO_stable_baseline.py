@@ -67,7 +67,7 @@ def main():
         logging.warning(f"Config file {args.config} does not exist")
     else:
         gin.parse_config_file(args.config)
-    episode_time = 200
+    episode_time = 600
     eval = True if args.eval else False
     total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000
