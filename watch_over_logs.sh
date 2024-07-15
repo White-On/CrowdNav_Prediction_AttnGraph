@@ -22,11 +22,11 @@ cleanup() {
 # Capturer les signaux d'interruption et de terminaison
 trap cleanup SIGINT SIGTERM
 
-# Utilisez scp pour copier le fichier de résultats à votre machine locale toutes les 30 secondes
+# Utilisez scp pour copier le fichier de résultats à votre machine locale toutes les 5 minutes
 echo "Début de la copie du fichier de résultats $LOG_FILE_PATH à l'emplacement local $LOCAL_RESULTS_PATH toutes les 30 secondes..."
 while true;
 do
   scp -r -o ControlPath=$SSH_CONTROL_PATH $REMOTE_USER@$REMOTE_HOST:$LOG_FILE_PATH $LOCAL_RESULTS_PATH
-  echo "Fichier de résultats copié, prochaine copie dans 30 secondes..."
-  sleep 30
+  echo "Fichier de résultats copié, prochaine copie dans 5 minutes..."
+  sleep 300
 done

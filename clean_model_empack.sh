@@ -8,11 +8,12 @@ CONFIG_DIRECTORY="gin_config_files"
 
 # Nom de base du modèle et du fichier de log
 BASE_MODEL_NAME="ppo_CrowdSimCar"
-BASE_LOG_FILE_NAME="PPO"
+BASE_LOG_FILE_NAME="runs/runs/PPO"
 
 # Crée un fichier ayant pour nom la dernière description de commit Git en retirant les espaces
 # et en remplaçant les caractères spéciaux par des tirets
-MAIN_DIRECTORY=$(echo $GIT_COMMIT_MESSAGE | tr -d '[:space:]' | tr -d '[:punct:]')
+MAIN_DIRECTORY=$(echo $GIT_COMMIT_MESSAGE | tr '[:space:]' '_' | tr '[:punct:]' '_')
+MAIN_DIRECTORY="MODEL_FILE_${MAIN_DIRECTORY}"
 mkdir -p $MAIN_DIRECTORY
 
 # Compter le nombre de fichiers de configuration
@@ -33,8 +34,8 @@ done
 
 # On copie aussi le modèle et les logs tensorboard dans chaque sous-dossier 
 for i in $(seq 1 $NUM_CONFIG_FILES); do
-    MODEL_NAME="${BASE_MODEL_NAME}_${i}"
-    LOG_FILE_NAME="${BASE_LOG_FILE_NAME}_${i}"
+    MODEL_NAME="${BASE_MODEL_NAME}_${i}.zip"
+    LOG_FILE_NAME="${BASE_LOG_FILE_NAME}_${i}_0"
     cp -r $MODEL_NAME $MAIN_DIRECTORY/$i
     cp -r $LOG_FILE_NAME $MAIN_DIRECTORY/$i
     echo "Copie du modèle $MODEL_NAME et du fichier de log $LOG_FILE_NAME dans $MAIN_DIRECTORY/$i"
