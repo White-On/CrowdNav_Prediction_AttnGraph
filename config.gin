@@ -1,6 +1,6 @@
 calc_reward.collision_factor = 4.0
 calc_reward.near_collision_factor = 0.0
-calc_reward.speed_factor = 0.0
+calc_reward.speed_factor = [0.0, 1.0]
 calc_reward.angular_factor = 0.0
 calc_reward.proximity_factor = 0.0
 calc_reward.progression_toward_goal_factor = 30.0

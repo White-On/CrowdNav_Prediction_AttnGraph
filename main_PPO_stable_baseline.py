@@ -19,6 +19,8 @@ def parse_args():
     parser.add_argument("-l", "--log", type=str, default="PPO")
     # nom de fichier de configuration gin
     parser.add_argument("-c", "--config", type=str, default="config.gin")
+    # nom du fichier du model sauvegardé
+    parser.add_argument("-m", "--model", type=str, default="ppo_CrowdSimCar")
     return parser.parse_args()
 
 @gin.configurable
@@ -62,7 +64,7 @@ def main():
     total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
-    model_file = "ppo_CrowdSimCar" 
+    model_file = args.model
 
     env = create_env(episode_time)
 
