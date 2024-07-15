@@ -1,6 +1,7 @@
 import gymnasium as gym
 import gymnasium.spaces
 import numpy as np
+import gin
 
 from env_component.human import Human
 from env_component.robot import Robot
@@ -349,17 +350,32 @@ class CrowdSimCar(gym.Env):
         # penalty_distance = 1
         # return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
         return 1 - 2 / (1 + np.exp((-distance_from_goal)))
-
+    @gin.configurable
     def compute_progression_toward_goal_reward(
-        self, current_distance_from_goal: float, past_distance_from_goal: float
+        self, current_distance_from_goal: float, 
+        past_distance_from_goal: float,
+        negative_factor: float = 1.0
     ) -> float:
         # positive reward if the robot is closer to the goal than before
         # if negative we punish even harder
-        negative_factor = 3
+        
         progression = past_distance_from_goal - current_distance_from_goal
         return progression if progression > 0 else negative_factor * progression
-
-    def calc_reward(self, save_in_file=False) -> tuple:
+    
+    @gin.configurable
+    def calc_reward(self, 
+                    save_in_file=False,
+                    collision_factor = 1.0,
+                    near_collision_factor = 1.0,
+                    speed_factor = 1.0,
+                    angular_factor = 1.0,
+                    proximity_factor = 1.0,
+                    progression_toward_goal_factor = 1.0,
+                    outside_arena_factor = 1.0,
+                    early_completion_factor = 1.0,
+                    reward_all_goals_reached = 500,
+                    reward_single_goal_reached = 200,
+                    ) -> tuple:
         if len(Human.HUMAN_LIST) != 0:
             distance_from_human = self.robot.distance_from_other_agents(
                 [human.get_position() for human in Human.HUMAN_LIST]
@@ -400,14 +416,14 @@ class CrowdSimCar(gym.Env):
 
         self.past_distance_from_goal = current_distance_from_goal
 
-        collision_factor = 4
-        near_collision_factor = 0.0
-        speed_factor = 0.0
-        angular_factor = 0.0
-        proximity_factor = 0.0
-        progression_toward_goal_factor = 30
-        outside_arena_factor = 0.0
-        early_completion_factor = 100
+        # collision_factor = 4
+        # near_collision_factor = 0.0
+        # speed_factor = 0.0
+        # angular_factor = 0.0
+        # proximity_factor = 0.0
+        # progression_toward_goal_factor = 30
+        # outside_arena_factor = 0.0
+        # early_completion_factor = 100
 
         collision_reward *= collision_factor
         near_collision_reward *= near_collision_factor
@@ -435,8 +451,8 @@ class CrowdSimCar(gym.Env):
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
-        reward_all_goals_reached = 500
-        reward_single_goal_reached = 200
+        # reward_all_goals_reached = 500
+        # reward_single_goal_reached = 200
 
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:

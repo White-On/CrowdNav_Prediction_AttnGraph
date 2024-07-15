@@ -6,12 +6,31 @@ import logging
 import pandas as pd
 import numpy as np
 import gym
+import gin
 
+@gin.configurable
+def create_env(episode_time: int,
+               nb_pedestrians: int = 10,
+               robot_is_visible: bool = True,
+               nb_goals_agent: int = 5,
+               scenario: str = None,):
+    env = gym.make(
+        "CrowdSimCar-v0",
+        render_mode="human",
+        episode_time=episode_time,
+        nb_pedestrians=nb_pedestrians,
+        disable_env_checker=True,
+        load_scenario=scenario,
+        robot_is_visible=robot_is_visible,
+        nb_goals_agent = nb_goals_agent,
+    )
+    return env
 
 def main():
     gym.logger.set_level(40)
     log_file = "env_experiment.log"
     logging_setup(log_file, level=logging.DEBUG)
+    gin.parse_config_file("config.gin")
 
     num_steps = 200
     random_behavior = True
@@ -19,16 +38,7 @@ def main():
     # logging.info(gym.envs.registry.keys())
 
     # env = CrowdSimCar(render_mode='human', episode_time=num_steps, nb_pedestrians=20)
-    env = gym.make(
-        "CrowdSimCar-v0",
-        render_mode="human",
-        episode_time=num_steps,
-        nb_pedestrians=0,
-        disable_env_checker=True,
-        robot_is_visible=True,
-        load_scenario=None,
-        nb_goals_agent = 1,
-    )
+    env = create_env(episode_time=num_steps)
     # logging.info(f'{env.observation_space.shape[0]}')
     save = False
     log_results_episodes = {"episode": [], "status": [], "reward": [], "steps": []}
@@ -64,7 +74,8 @@ def main():
             if isinstance(obs, list):
                 obs = np.array(obs)
 
-            # logging.info(f"{obs.shape = }")
+            # logging.info(f"{obs = }")
+            # logging.info(f"{obs['robot_node'] = }")
             # logging.info(
             #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info['info']}"
             # )
