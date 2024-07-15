@@ -257,7 +257,7 @@ class CrowdSimCar(gym.Env):
         # graph features: future position of every human + robot
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         observation["graph_features"] = np.full(
-            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), 255.0
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), 20.0
         )
 
         visible_agent_by_robot = agent_visible.filter(
