@@ -401,12 +401,12 @@ class CrowdSimCar(gym.Env):
         self.past_distance_from_goal = current_distance_from_goal
 
         collision_factor = 4
-        near_collision_factor = 0.5
-        speed_factor = 4
-        angular_factor = 0
-        proximity_factor = 0
+        near_collision_factor = 0.0
+        speed_factor = 0.0
+        angular_factor = 0.0
+        proximity_factor = 0.0
         progression_toward_goal_factor = 30
-        outside_arena_factor = 1
+        outside_arena_factor = 0.0
         early_completion_factor = 100
 
         collision_reward *= collision_factor

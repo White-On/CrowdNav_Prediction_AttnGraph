@@ -56,12 +56,15 @@ def main():
         env = model.get_env()
         model = PPO.load(model_file)
         obs = env.reset()
+        total_reward = 0
 
         for _ in range(episode_time):
             action, _states = model.predict(obs)
             obs, rewards, dones, info = env.step(action)
             env.render()
+            total_reward += rewards
 
+        logging.info(f"Total reward: {total_reward}")
         return
 
     for i in range(nb_learnging_cycles):

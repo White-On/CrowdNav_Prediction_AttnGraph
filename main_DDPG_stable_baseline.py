@@ -71,12 +71,14 @@ def main():
         vec_env = model.get_env()
         model = DDPG.load(model_file)
         obs = vec_env.reset()
+        total_reward = 0
 
         for _ in range(episode_time):
             action, _states = model.predict(obs)
             obs, rewards, dones, info = vec_env.step(action)
             env.render()
-
+            total_reward += rewards
+        logging.info(f"Total reward: {total_reward}")
         return
 
     for i in range(nb_learnging_cycles):
