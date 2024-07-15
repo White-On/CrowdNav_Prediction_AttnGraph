@@ -29,7 +29,7 @@ for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
     SUBDIRECTORY="$MAIN_DIRECTORY/$INDEX"
     mkdir -p $SUBDIRECTORY
     cp $CONFIG_FILE $SUBDIRECTORY
-    echo "Copie du fichier de configuration $CONFIG_FILE dans $SUBDIRECTORY"
+    # echo "Copie du fichier de configuration $CONFIG_FILE dans $SUBDIRECTORY"
 done
 
 # On copie aussi le modèle et les logs tensorboard dans chaque sous-dossier 
@@ -38,7 +38,7 @@ for i in $(seq 1 $NUM_CONFIG_FILES); do
     LOG_FILE_NAME="${BASE_LOG_FILE_NAME}_${i}_0"
     cp -r $MODEL_NAME $MAIN_DIRECTORY/$i
     cp -r $LOG_FILE_NAME $MAIN_DIRECTORY/$i
-    echo "Copie du modèle $MODEL_NAME et du fichier de log $LOG_FILE_NAME dans $MAIN_DIRECTORY/$i"
+    # echo "Copie du modèle $MODEL_NAME et du fichier de log $LOG_FILE_NAME dans $MAIN_DIRECTORY/$i"
 done
 
 echo "Script terminé avec succès."
