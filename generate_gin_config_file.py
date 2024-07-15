@@ -45,7 +45,7 @@ def generate_configs(base_config, output_dir):
         print(f"Generated {output_path}")
 
 def main():
-    base_config_path = 'config.gin'  # Chemin vers le fichier de configuration de base
+    base_config_path = 'config_template.gin'  # Chemin vers le fichier de configuration de base
     output_dir = 'gin_config_files'  # Répertoire de sortie pour les fichiers générés
     
     if not os.path.exists(output_dir):

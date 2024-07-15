@@ -11,7 +11,7 @@ BASE_MODEL_NAME="ppo_CrowdSimCar"
 BASE_LOG_FILE="PPO"
 
 # Nombre maximum de scripts Python à exécuter simultanément
-MAX_CONCURRENT_JOBS=8
+MAX_CONCURRENT_JOBS=10
 
 # Fonction pour arrêter tous les processus enfants
 cleanup() {
