@@ -3,7 +3,7 @@ calc_reward.near_collision_factor = 0.0
 calc_reward.speed_factor = 1.0
 calc_reward.angular_factor = 1.0
 calc_reward.proximity_factor = 0.0
-calc_reward.progression_toward_goal_factor = [10.0, 20.0, 30.0]
+calc_reward.progression_toward_goal_factor = 10.0
 calc_reward.outside_arena_factor = 0.0
 calc_reward.early_completion_factor = 100.0
 calc_reward.reward_all_goals_reached = 500
@@ -13,5 +13,7 @@ create_env.nb_pedestrians = 0
 create_env.robot_is_visible = True
 create_env.nb_goals_agent = 1
 create_env.scenario = None
+create_env.context_max_size = [1, 4, 8, 12, 16]
 
-compute_progression_toward_goal_reward.negative_factor = [1.0, 2.0, 4.0]
+compute_progression_toward_goal_reward.negative_factor = 2.0
+

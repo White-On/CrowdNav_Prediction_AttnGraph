@@ -30,6 +30,7 @@ class CrowdSimCar(gym.Env):
         robot_is_visible=False,
         load_scenario=None,
         nb_goals_agent = 5,
+        context_max_size = 15,
     ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -56,7 +57,7 @@ class CrowdSimCar(gym.Env):
         self.time_step = time_step
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
-        self.context_max_size = 15
+        self.context_max_size = context_max_size
 
         sensor_range = 4
         self.robot = Robot(
