@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# lance l'entrainement de plusieurs modèles en parallèle
+# en utilisant des fichiers de configuration GIN différents
+
 # Dossier contenant les fichiers de configuration
 CONFIG_DIR="gin_config_files"
 
@@ -19,9 +22,16 @@ cleanup() {
     pkill -P $$
     exit 1
 }
+# Verifier si on exécute le script avec l'envirement virtuel de python .venv
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Vous devez activer l'environnement virtuel avant d'exécuter ce script."
+fi
 
 # Capturer les signaux de terminaison
 trap cleanup SIGINT SIGTERM
+
+# Générer un fichier de configuration GIN pour chaque fichier de configuration avec le template
+python generate_gin_config_file.py
 
 # Compter le nombre de fichiers de configuration
 CONFIG_FILES=($CONFIG_DIR/*.gin)

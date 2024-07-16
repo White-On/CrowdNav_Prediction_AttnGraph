@@ -9,13 +9,14 @@ from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 import logging
 from logger import logging_setup
 
+
 def parse_args():
-     # parse arguments
+    # parse arguments
     parser = argparse.ArgumentParser()
     # mode eval ou pas
-    parser.add_argument("-e", "--eval", action='store_true')
+    parser.add_argument("-e", "--eval", action="store_true")
     # pour le logger le niveau
-    parser.add_argument("-v", "--verbose", action='store_true')
+    parser.add_argument("-v", "--verbose", action="store_true")
     # nom fichier log tensorflow
     parser.add_argument("-l", "--log", type=str, default="PPO")
     # nom de fichier de configuration gin
@@ -24,13 +25,16 @@ def parse_args():
     parser.add_argument("-m", "--model", type=str, default="ppo_CrowdSimCar")
     return parser.parse_args()
 
+
 @gin.configurable
-def create_env(episode_time: int,
-               nb_pedestrians: int = 10,
-               robot_is_visible: bool = False,
-               nb_goals_agent: int = 5,
-               scenario: str = None,
-               context_max_size: int = 10,):
+def create_env(
+    episode_time: int,
+    nb_pedestrians: int = 10,
+    robot_is_visible: bool = False,
+    nb_goals_agent: int = 5,
+    scenario: str = None,
+    context_max_size: int = 10,
+):
     env = gym.make(
         "CrowdSimCar-v0",
         render_mode="human",
@@ -39,15 +43,17 @@ def create_env(episode_time: int,
         disable_env_checker=True,
         load_scenario=scenario,
         robot_is_visible=robot_is_visible,
-        nb_goals_agent = nb_goals_agent,
+        nb_goals_agent=nb_goals_agent,
         context_max_size=context_max_size,
     )
     return env
 
+
 @gin.configurable(denylist=["env"])
-def init_model(env,
-            gamma: float = 0.99,
-               ):
+def init_model(
+    env,
+    gamma: float = 0.99,
+):
     return PPO(
         "MultiInputPolicy",
         env,
@@ -60,7 +66,9 @@ def init_model(env,
 
 def main():
     args = parse_args()
-    logging_setup("PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO)
+    logging_setup(
+        "PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO
+    )
     # check if the config file exists
     config_file_exist = Path(args.config).exists()
     if not config_file_exist:
@@ -94,11 +102,11 @@ def main():
             action, _states = model.predict(obs)
             obs, rewards, dones, info = env.step(action)
             env.render()
-            logging.info(f"{obs['robot_node'] = }") 
+            logging.info(f"{obs['robot_node'] = }")
             total_reward += rewards
 
-        logging.info(f"Total reward: {total_reward}")
-        
+        logging.debug(f"Total reward: {total_reward}")
+
         return
 
     for i in range(nb_learnging_cycles):

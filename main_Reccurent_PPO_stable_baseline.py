@@ -10,17 +10,20 @@ from logger import logging_setup
 
 
 def main():
-     # parse arguments
+    # parse arguments
     parser = argparse.ArgumentParser()
     # mode eval ou pas
-    parser.add_argument("-e", "--eval", action='store_true')
+    parser.add_argument("-e", "--eval", action="store_true")
     # pour le logger le niveau
-    parser.add_argument("-v", "--verbose", action='store_true')
+    parser.add_argument("-v", "--verbose", action="store_true")
     # nom fichier log tensorflow
     parser.add_argument("-l", "--log", type=str, default="RecurrentPPO")
     args = parser.parse_args()
 
-    logging_setup("Recurrent_PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO)
+    logging_setup(
+        "Recurrent_PPO_evaluation.log",
+        level=logging.DEBUG if args.verbose else logging.INFO,
+    )
     episode_time = 200
     eval = True if args.eval else False
     total_timesteps = 2_000_000
@@ -36,7 +39,7 @@ def main():
         disable_env_checker=True,
         load_scenario=None,
         robot_is_visible=True,
-        nb_goals_agent = 1,
+        nb_goals_agent=1,
     )
 
     def linear_schedule(initial_value: float):
@@ -64,7 +67,9 @@ def main():
         episode_starts = np.ones((num_envs,), dtype=bool)
 
         for _ in range(episode_time):
-            action, lstm_states = model.predict(obs, state=lstm_states, episode_start=episode_starts)
+            action, lstm_states = model.predict(
+                obs, state=lstm_states, episode_start=episode_starts
+            )
             obs, rewards, dones, info = env.step(action)
             episode_starts = dones
             env.render()
@@ -92,7 +97,9 @@ def main():
     episode_starts = np.ones((num_envs,), dtype=bool)
 
     for _ in range(episode_time):
-        action, lstm_states = model.predict(obs, state=lstm_states, episode_start=episode_starts)
+        action, lstm_states = model.predict(
+            obs, state=lstm_states, episode_start=episode_starts
+        )
         obs, rewards, dones, info = env.step(action)
         episode_starts = dones
         env.render()

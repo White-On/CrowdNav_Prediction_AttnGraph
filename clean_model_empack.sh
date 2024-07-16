@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Script pour ranger les modèles appris dans un dossier avec le nom du dernier commit Git
+# avec leurs log tensorboard, fichiers de configuration associés et le model en lui meme
+
 # Récupère la description du dernier commit Git
 GIT_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
 
@@ -8,7 +11,7 @@ CONFIG_DIRECTORY="gin_config_files"
 
 # Nom de base du modèle et du fichier de log
 BASE_MODEL_NAME="ppo_CrowdSimCar"
-BASE_LOG_FILE_NAME="runs/runs/PPO"
+BASE_LOG_FILE_NAME="runs/PPO"
 
 # Crée un fichier ayant pour nom la dernière description de commit Git en retirant les espaces
 # et en remplaçant les caractères spéciaux par des tirets

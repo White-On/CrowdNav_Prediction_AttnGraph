@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Permet d'aller chercher les modèles appris sur la machine distante
+
 # Changez les valeurs pour correspondre à votre configuration .env
 if [ -f .env ]; then
     export $(cat .env | grep -v '#' | awk '/=/ {print $1}')

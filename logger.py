@@ -10,7 +10,9 @@ def logging_setup(log_file: str, level=logging.INFO):
         gym.logger.set_level(40)
         matplotlib_logger = logging.getLogger("matplotlib")
         matplotlib_logger.setLevel(logging.WARNING)
-        
+        pil_logger = logging.getLogger("PIL")
+        pil_logger.setLevel(logging.INFO)
+
     logger = logging.getLogger(__name__)
 
     shell_handler = RichHandler()

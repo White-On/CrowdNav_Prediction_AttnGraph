@@ -118,10 +118,10 @@ class AgentGroup:
 
     def reset(self):
         return self.apply(lambda x: x.reset())
-    
+
     def sort(self, key: staticmethod) -> "AgentGroup":
         return AgentGroup(*sorted(self.agents, key=key))
-    
+
     def limit(self, n: int) -> "AgentGroup":
         return AgentGroup(*self.agents[:n])
 

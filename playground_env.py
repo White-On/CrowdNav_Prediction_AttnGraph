@@ -8,13 +8,16 @@ import numpy as np
 import gym
 import gin
 
+
 @gin.configurable
-def create_env(episode_time: int,
-               nb_pedestrians: int = 10,
-               robot_is_visible: bool = True,
-               nb_goals_agent: int = 5,
-               scenario: str = None,
-               context_max_size: int = 10,):
+def create_env(
+    episode_time: int,
+    nb_pedestrians: int = 10,
+    robot_is_visible: bool = True,
+    nb_goals_agent: int = 5,
+    scenario: str = None,
+    context_max_size: int = 10,
+):
     env = gym.make(
         "CrowdSimCar-v0",
         render_mode="human",
@@ -23,10 +26,11 @@ def create_env(episode_time: int,
         disable_env_checker=True,
         load_scenario=scenario,
         robot_is_visible=robot_is_visible,
-        nb_goals_agent = nb_goals_agent,
+        nb_goals_agent=nb_goals_agent,
         context_max_size=context_max_size,
     )
     return env
+
 
 def main():
     gym.logger.set_level(40)
@@ -91,7 +95,7 @@ def main():
                     log_results_episodes["reward"].append(reward)
                     log_results_episodes["steps"].append(step + 1)
                 # break
-        
+
         logging.info(f"Total reward: {total_reward:.2f}")
     env.close()
     if save:

@@ -18,15 +18,16 @@ def main():
     # parse arguments
     parser = argparse.ArgumentParser()
     # mode eval ou pas
-    parser.add_argument("-e", "--eval", action='store_true')
+    parser.add_argument("-e", "--eval", action="store_true")
     # pour le logger le niveau
-    parser.add_argument("-v", "--verbose", action='store_true')
+    parser.add_argument("-v", "--verbose", action="store_true")
     # nom fichier log tensorflow
     parser.add_argument("-l", "--log", type=str, default="DDPG")
     args = parser.parse_args()
 
-
-    logging_setup("DDPG_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO)
+    logging_setup(
+        "DDPG_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO
+    )
     episode_time = 200
     eval = True if args.eval else False
     total_timesteps = 1_000_000
@@ -43,7 +44,7 @@ def main():
         disable_env_checker=True,
         load_scenario=None,
         robot_is_visible=True,
-        nb_goals_agent = 1,
+        nb_goals_agent=1,
     )
 
     # The noise objects for DDPG
