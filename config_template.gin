@@ -17,3 +17,8 @@ create_env.context_max_size = 4
 
 compute_progression_toward_goal_reward.negative_factor = 2.0
 
+init_model.gamma = 0.99
+
+init_params.episode_time = 200
+init_params.total_timesteps = 2_000_000
+init_params.save_every_n_timesteps = 10_000

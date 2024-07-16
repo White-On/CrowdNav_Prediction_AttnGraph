@@ -1,2 +1,3 @@
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
+from gym_file.envs.crowd_sim_car_complex_obs import CrowdSimCarComplexObs

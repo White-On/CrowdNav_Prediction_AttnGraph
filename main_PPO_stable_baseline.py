@@ -63,6 +63,13 @@ def init_model(
         # learning_rate=linear_schedule(1e-3),
     )
 
+@gin.configurable
+def init_params(
+    episode_time = 200,
+    total_timesteps = 2_000_000,
+    save_every_n_timesteps = 10_000,
+    ):
+    return episode_time, total_timesteps, save_every_n_timesteps
 
 def main():
     args = parse_args()
@@ -75,10 +82,9 @@ def main():
         logging.warning(f"Config file {args.config} does not exist")
     else:
         gin.parse_config_file(args.config)
-    episode_time = 200
+    
     eval = True if args.eval else False
-    total_timesteps = 2_000_000
-    save_every_n_timesteps = 10_000
+    episode_time, total_timesteps, save_every_n_timesteps = init_params()
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = args.model
 
@@ -102,7 +108,7 @@ def main():
             action, _states = model.predict(obs)
             obs, rewards, dones, info = env.step(action)
             env.render()
-            logging.info(f"{obs = }")
+            logging.debug(f"{obs = }")
             total_reward += rewards
 
         logging.debug(f"Total reward: {total_reward}")
@@ -119,15 +125,15 @@ def main():
         )
         model.save(model_file)
 
-    vec_env = model.get_env()
-    model = PPO.load(model_file)
+    # vec_env = model.get_env()
+    # model = PPO.load(model_file)
 
-    obs = vec_env.reset()
+    # obs = vec_env.reset()
 
-    for _ in range(episode_time):
-        action, _states = model.predict(obs)
-        obs, rewards, dones, info = vec_env.step(action)
-        vec_env.render()
+    # for _ in range(episode_time):
+    #     action, _states = model.predict(obs)
+    #     obs, rewards, dones, info = vec_env.step(action)
+    #     vec_env.render()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
+from gym_file.envs.crowd_sim_car_complex_obs import CrowdSimCarComplexObs
 from logger import logging_setup
 
 import logging
@@ -19,7 +20,7 @@ def create_env(
     context_max_size: int = 10,
 ):
     env = gym.make(
-        "CrowdSimCar-v0",
+        "CrowdSimCar-v2",
         render_mode="human",
         episode_time=episode_time,
         nb_pedestrians=nb_pedestrians,
@@ -31,11 +32,10 @@ def create_env(
     )
     return env
 
-
 def main():
     gym.logger.set_level(40)
     log_file = "env_experiment.log"
-    logging_setup(log_file, level=logging.DEBUG)
+    logging_setup(log_file, level=logging.INFO)
     gin.parse_config_file("config.gin")
 
     num_steps = 2000
@@ -80,7 +80,7 @@ def main():
             if isinstance(obs, list):
                 obs = np.array(obs)
 
-            logging.info(f"{obs = }")
+            # logging.info(f"{obs = }")
             # logging.info(f"{obs['robot_node'][2:] = }")
             # logging.info(
             #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info['info']}"
