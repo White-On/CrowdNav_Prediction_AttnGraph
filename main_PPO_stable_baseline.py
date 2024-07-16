@@ -102,7 +102,7 @@ def main():
             action, _states = model.predict(obs)
             obs, rewards, dones, info = env.step(action)
             env.render()
-            logging.info(f"{obs['robot_node'] = }")
+            logging.info(f"{obs = }")
             total_reward += rewards
 
         logging.debug(f"Total reward: {total_reward}")

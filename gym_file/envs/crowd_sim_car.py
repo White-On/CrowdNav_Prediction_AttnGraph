@@ -257,8 +257,12 @@ class CrowdSimCar(gym.Env):
 
         # graph features: future position of every human + robot
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
+        # THEORIE ! si on trasforme les observation en valeurs comprise entre 0 et 1,
+        # pour ce faire au lieu d'etre les exact coordonnées relative, on les transforme en vecteur de direction
+        # dont la norme dépend de la distance des points précédents
+        placeholder_value = 1.0
         observation["graph_features"] = np.full(
-            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), 20.0
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), placeholder_value
         )
 
         visible_agent_by_robot = agent_visible.filter(
@@ -291,6 +295,10 @@ class CrowdSimCar(gym.Env):
             observation["graph_features"][i] = self.global_to_relative(
                 human_future_traj.reshape(-1, 2), robot_position, robot_rotation
             )
+
+            # THEORIE: On normalise les vecteurs de direction en fonction de la distance max
+            # du sensor range pour avoir des valeurs entre 0 et 1
+            observation["graph_features"][i] = observation["graph_features"][i] / self.robot.sensor_range
 
         observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
         # logging.info(f'{observation["graph_features"].shape}')
