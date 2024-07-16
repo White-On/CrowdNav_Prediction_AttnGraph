@@ -27,7 +27,7 @@ def parse_args():
 @gin.configurable
 def create_env(episode_time: int,
                nb_pedestrians: int = 10,
-               robot_is_visible: bool = True,
+               robot_is_visible: bool = False,
                nb_goals_agent: int = 5,
                scenario: str = None,
                context_max_size: int = 10,):
@@ -67,7 +67,7 @@ def main():
         logging.warning(f"Config file {args.config} does not exist")
     else:
         gin.parse_config_file(args.config)
-    episode_time = 600
+    episode_time = 200
     eval = True if args.eval else False
     total_timesteps = 2_000_000
     save_every_n_timesteps = 10_000

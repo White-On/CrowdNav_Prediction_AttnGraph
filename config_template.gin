@@ -10,10 +10,10 @@ calc_reward.reward_all_goals_reached = 500
 calc_reward.reward_single_goal_reached = 200
 
 create_env.nb_pedestrians = 5
-create_env.robot_is_visible = True
+create_env.robot_is_visible = [False, True]
 create_env.nb_goals_agent = 5
-create_env.scenario = "random"
-create_env.context_max_size = [1, 2, 3, 4, 8, 16]
+create_env.scenario = ["random", None]
+create_env.context_max_size = 4
 
 compute_progression_toward_goal_reward.negative_factor = 2.0
 
