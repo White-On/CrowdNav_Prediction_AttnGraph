@@ -37,8 +37,9 @@ def main():
     log_file = "env_experiment.log"
     logging_setup(log_file, level=logging.INFO)
     gin.parse_config_file("config.gin")
+    # np.random.seed(0)
 
-    num_steps = 2000
+    num_steps = 400
     random_behavior = True
     num_episodes = 1
     # logging.info(gym.envs.registry.keys())
@@ -60,7 +61,7 @@ def main():
             action = env.robot.predict_what_to_do()
             if random_behavior:
                 random_angle = np.random.uniform(-np.pi / 6, np.pi / 6)
-                # random_acceleration = np.random.uniform(-0.2, 0.5)
+                random_acceleration = np.random.uniform(-0.2, 0.5)
                 # random_acceleration = (
                 #     -0.2 if env.robot.velocity_norm > env.robot.desired_speed else 0.2
                 # )
@@ -72,6 +73,7 @@ def main():
                 # )
                 action[0] = random_acceleration
                 # action[1] = random_angle
+                # action[1] = -np.pi / 6
 
             obs, reward, done, truncated, info = env.step(action)
             total_reward += reward

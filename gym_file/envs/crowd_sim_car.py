@@ -16,7 +16,7 @@ class CrowdSimCar(gym.Env):
     Environment for the crowd simulation with a robot and pedestrians
     """
 
-    metadata = {"render_modes": ["human", "debug", None]}
+    metadata = {"render_modes": ["human", "debug", None, "presentation"]}
     implemented_scenarios = ["front", "back", "random"]
 
     def __init__(
@@ -574,6 +574,16 @@ class CrowdSimCar(gym.Env):
                 fontsize=markersize_goal - 1,
             )
 
+            if self.render_mode == "presentation":
+                pos = self.global_to_relative(np.array(goal), [robotX, robotY], self.robot.orientation)
+                ax.text(
+                    goal[0],
+                    goal[1],
+                    f"x:{pos[0]:.2f}\ny:{pos[1]:.2f}",
+                    color="black",
+                    fontsize=8,
+                )
+
         # add line for the path between goals
         if len(self.robot.path) > 0:
             for path in self.robot.path:
@@ -597,6 +607,15 @@ class CrowdSimCar(gym.Env):
                 rotation_point=(robotX, robotY),
             )
         )
+        if self.render_mode == "presentation":
+            pos = self.global_to_relative(np.array([robotX, robotY]), [robotX, robotY], self.robot.orientation)
+            ax.text(
+                robotX,
+                robotY,
+                f"x:{pos[0]:.2f}\ny:{pos[1]:.2f}",
+                color="black",
+                fontsize=8,
+            )
         # direction and goal arrow
         if self.render_mode == "debug":
             ax.arrow(
@@ -701,6 +720,16 @@ class CrowdSimCar(gym.Env):
                     head_length=0.1,
                     fc=human_goal_color,
                     ec=human_goal_color,
+                )
+            
+            if self.render_mode == "presentation":
+                pos = self.global_to_relative(np.array(human.get_position()), [robotX, robotY], self.robot.orientation)
+                ax.text(
+                    human.coordinates[0],
+                    human.coordinates[1],
+                    f"x:{pos[0]:.2f}\ny:{pos[1]:.2f}",
+                    color="black",
+                    fontsize=8,
                 )
 
         if self.display_future_trajectory and len(Human.HUMAN_LIST) != 0:
