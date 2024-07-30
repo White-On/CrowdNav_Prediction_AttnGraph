@@ -5,7 +5,7 @@ For experiment demonstrations, please refer to the [youtube video](https://www.y
 
 ## type-checking
 
-[!typo_progress]
+![typo_progress](https://progress-bar.dev/70/?title=typed&width=150&scale=100&suffix=%)
 
 **[News]**
 - Please check out our open-sourced sim2real tutorial [here](https://github.com/Shuijing725/CrowdNav_Sim2Real_Turtlebot)
