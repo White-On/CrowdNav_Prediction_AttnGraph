@@ -63,13 +63,15 @@ def init_model(
         # learning_rate=linear_schedule(1e-3),
     )
 
+
 @gin.configurable
 def init_params(
-    episode_time = 200,
-    total_timesteps = 2_000_000,
-    save_every_n_timesteps = 10_000,
-    ):
+    episode_time=4000,
+    total_timesteps=2_000_000,
+    save_every_n_timesteps=10_000,
+):
     return episode_time, total_timesteps, save_every_n_timesteps
+
 
 def main():
     args = parse_args()
@@ -82,7 +84,7 @@ def main():
         logging.warning(f"Config file {args.config} does not exist")
     else:
         gin.parse_config_file(args.config)
-    
+
     eval = True if args.eval else False
     episode_time, total_timesteps, save_every_n_timesteps = init_params()
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
@@ -113,6 +115,7 @@ def main():
 
         logging.debug(f"Total reward: {total_reward}")
 
+        env.close()
         return
 
     for i in range(nb_learnging_cycles):
@@ -134,6 +137,7 @@ def main():
     #     action, _states = model.predict(obs)
     #     obs, rewards, dones, info = vec_env.step(action)
     #     vec_env.render()
+    env.close()
 
 
 if __name__ == "__main__":

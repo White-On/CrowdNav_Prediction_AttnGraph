@@ -149,3 +149,4 @@ Part of the code is based on the following repositories:
 
 ## Contact
 If you have any questions or find any bugs, please feel free to open an issue or pull request.
+![typo_progress](https://progress-bar.dev/70/?title=typed&width=150&scale=100&suffix=%)
