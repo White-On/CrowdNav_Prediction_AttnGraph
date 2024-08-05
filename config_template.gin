@@ -22,6 +22,6 @@ init_model.gamma = 0.99
 
 init_params.episode_time = 400
 init_params.total_timesteps = 2_000_000
-init_params.save_every_n_timesteps = 10_000
+init_params.save_every_n_timesteps = [5_000, 10_000, 20_000]
 
 

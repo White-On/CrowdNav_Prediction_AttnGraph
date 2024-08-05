@@ -33,6 +33,7 @@ class CrowdSimCar(gym.Env):
         context_max_size=15,
         ghost_mode=False,
         title=None,
+        learning_state: float = 1.0,
     ) -> None:
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -63,6 +64,7 @@ class CrowdSimCar(gym.Env):
         self.nb_forseen_goal = 1
         self.context_max_size = context_max_size
         self.ghost_mode = ghost_mode
+        self.learning_state = learning_state
 
         sensor_range = 4
         self.robot = Robot(
@@ -455,7 +457,7 @@ class CrowdSimCar(gym.Env):
         # outside_arena_factor = 0.0
         # early_completion_factor = 100
 
-        collision_reward *= collision_factor
+        collision_reward *= collision_factor * self.learning_state
         near_collision_reward *= near_collision_factor
         speed_reward *= speed_factor
         angular_reward *= angular_factor

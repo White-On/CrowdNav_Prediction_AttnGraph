@@ -19,6 +19,7 @@ def create_env(
     scenario: str = None,
     context_max_size: int = 10,
     ghost_mode: bool = False,
+    learning_state: float = 1.0,
 ):
     env = gym.make(
         "CrowdSimCar-v2",
@@ -32,6 +33,7 @@ def create_env(
         context_max_size=context_max_size,
         ghost_mode=ghost_mode,
         title="playground",
+        learning_state=learning_state,
     )
     return env
 
@@ -39,7 +41,7 @@ def create_env(
 def main():
     gym.logger.set_level(40)
     log_file = "env_experiment.log"
-    logging_setup(log_file, level=logging.INFO)
+    logging_setup(log_file, level=logging.DEBUG)
     gin.parse_config_file("config.gin")
     # np.random.seed(0)
 

@@ -29,6 +29,7 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         context_max_size=10,
         ghost_mode=False,
         title=None,
+        learning_state: float = 1.0,
     ) -> None:
         super().__init__(
             render_mode,
@@ -43,6 +44,7 @@ class CrowdSimCarComplexObs(CrowdSimCar):
             context_max_size=context_max_size,
             ghost_mode=ghost_mode,
             title=title,
+            learning_state=learning_state,
         )
 
     def define_observations_space(

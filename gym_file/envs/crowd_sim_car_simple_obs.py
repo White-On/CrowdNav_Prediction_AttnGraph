@@ -28,6 +28,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         nb_goals_agent=5,
         ghost_mode=False,
         title=None,
+        learning_state: float = 1.0,
     ):
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -58,6 +59,7 @@ class CrowdSimCarSimpleObs(CrowdSimCar):
         self.nb_forseen_goal = 1
         self.goal_threshold_distance = 0.3
         self.ghost_mode = ghost_mode
+        self.learning_state = learning_state
 
         sensor_range = 4
         self.robot = Robot(

@@ -52,6 +52,7 @@ def create_env(
     context_max_size: int = 10,
     ghost_mode: bool = False,
     title: str = None,
+    learning_state: float = 1.0,
 ) -> gym.Env:
     env = gym.make(
         "CrowdSimCar-v2",
@@ -65,6 +66,7 @@ def create_env(
         context_max_size=context_max_size,
         ghost_mode=ghost_mode,
         title=title,
+        learning_state=learning_state,
     )
     return env
 
@@ -112,7 +114,7 @@ def main() -> None:
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = args.model
 
-    env = create_env(episode_time, title=title)
+    env = create_env(episode_time, title=title, learning_state=1.0)
 
     def linear_schedule(initial_value: float):
         def func(progress_remaining: float) -> float:
@@ -141,6 +143,9 @@ def main() -> None:
         return
 
     for i in range(nb_learnging_cycles):
+        ls = i / nb_learnging_cycles
+        n_env = create_env(episode_time, title=title, learning_state=ls)
+        model.set_env(n_env)
         model.learn(
             total_timesteps=save_every_n_timesteps,
             log_interval=1,
