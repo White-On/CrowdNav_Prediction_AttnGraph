@@ -34,6 +34,7 @@ def create_env(
     nb_goals_agent: int = 5,
     scenario: str = None,
     context_max_size: int = 10,
+    ghost_mode: bool = False,
 ) -> gym.Env:
     env = gym.make(
         "CrowdSimCar-v0",
@@ -45,6 +46,7 @@ def create_env(
         robot_is_visible=robot_is_visible,
         nb_goals_agent=nb_goals_agent,
         context_max_size=context_max_size,
+        ghost_mode=ghost_mode,
     )
     return env
 
