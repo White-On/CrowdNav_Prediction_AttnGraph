@@ -31,6 +31,7 @@ class CrowdSimCar(gym.Env):
         load_scenario=None,
         nb_goals_agent=5,
         context_max_size=15,
+        ghost_mode=False,
     ) -> None:
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -58,6 +59,7 @@ class CrowdSimCar(gym.Env):
         self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
         self.context_max_size = context_max_size
+        self.ghost_mode = ghost_mode
 
         sensor_range = 4
         self.robot = Robot(
@@ -476,8 +478,10 @@ class CrowdSimCar(gym.Env):
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
-        # reward_all_goals_reached = 500
-        # reward_single_goal_reached = 200
+        if self.ghost_mode and collision_happened:
+            # if ghost mode is activated, the collision is not the end of the episode
+            # but it will be a negative reward
+            collision_happened = False
 
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:
