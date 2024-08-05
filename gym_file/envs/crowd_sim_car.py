@@ -29,9 +29,9 @@ class CrowdSimCar(gym.Env):
         display_future_trajectory=True,
         robot_is_visible=False,
         load_scenario=None,
-        nb_goals_agent = 5,
-        context_max_size = 15,
-    ):
+        nb_goals_agent=5,
+        context_max_size=15,
+    ) -> None:
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
             logging.error(f"Mode {render_mode} is not supported")
@@ -74,7 +74,12 @@ class CrowdSimCar(gym.Env):
         self.past_distance_from_goal = None
 
         for _ in range(nb_pedestrians):
-            Human(self.time_step, arena_size=arena_size, sensor_range=sensor_range, desired_speed=0.7)
+            Human(
+                self.time_step,
+                arena_size=arena_size,
+                sensor_range=sensor_range,
+                desired_speed=0.7,
+            )
 
         self.goal_threshold_distance = self.robot.radius
 
@@ -135,7 +140,7 @@ class CrowdSimCar(gym.Env):
             shape=(self.context_max_size, spatial_edge_dim),
             dtype=np.float32,
         )
-        logging.debug(f'{observation_space}')
+        logging.debug(f"{observation_space}")
         return gymnasium.spaces.Dict(observation_space)
 
     def define_action_space(self) -> gymnasium.spaces.Box:
@@ -155,7 +160,7 @@ class CrowdSimCar(gym.Env):
             action_space_boundries[:, 0], action_space_boundries[:, 1], dtype=np.float32
         )
 
-    def reset(self, **kwargs) -> dict:
+    def reset(self, **kwargs: dict) -> dict:
         """
         Reset the environment
         :return:
@@ -262,7 +267,8 @@ class CrowdSimCar(gym.Env):
         # dont la norme dépend de la distance des points précédents
         placeholder_value = 1.0
         observation["graph_features"] = np.full(
-            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), placeholder_value
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2),
+            placeholder_value,
         )
 
         visible_agent_by_robot = agent_visible.filter(
@@ -270,10 +276,13 @@ class CrowdSimCar(gym.Env):
         ).filter(self.robot.can_i_see)
 
         # amoung the visible agent, we take only the context_max_size closest agents
-        visible_agent_by_robot = visible_agent_by_robot.sort(
-            lambda x: self.distance_matrix[self.robot.id][x.id]
-        ).limit(self.context_max_size
-        ).get_all()
+        visible_agent_by_robot = (
+            visible_agent_by_robot.sort(
+                lambda x: self.distance_matrix[self.robot.id][x.id]
+            )
+            .limit(self.context_max_size)
+            .get_all()
+        )
 
         # transform the graph features into relative coordinates
         robot_position = np.array(self.robot.get_position())
@@ -298,9 +307,13 @@ class CrowdSimCar(gym.Env):
 
             # THEORIE: On normalise les vecteurs de direction en fonction de la distance max
             # du sensor range pour avoir des valeurs entre 0 et 1
-            observation["graph_features"][i] = observation["graph_features"][i] / self.robot.sensor_range
+            observation["graph_features"][i] = (
+                observation["graph_features"][i] / self.robot.sensor_range
+            )
 
-        observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
+        observation["graph_features"] = observation["graph_features"].reshape(
+            self.context_max_size, -1
+        )
         # logging.info(f'{observation["graph_features"].shape}')
         # logging.debug(f"🔵 observation: {observation}")
         return observation
@@ -359,32 +372,35 @@ class CrowdSimCar(gym.Env):
         # penalty_distance = 1
         # return 1 - 2 / (1 + np.exp(0.5*(-distance_from_goal + penalty_distance)))
         return 1 - 2 / (1 + np.exp((-distance_from_goal)))
+
     @gin.configurable
     def compute_progression_toward_goal_reward(
-        self, current_distance_from_goal: float, 
+        self,
+        current_distance_from_goal: float,
         past_distance_from_goal: float,
-        negative_factor: float = 1.0
+        negative_factor: float = 1.0,
     ) -> float:
         # positive reward if the robot is closer to the goal than before
         # if negative we punish even harder
-        
+
         progression = past_distance_from_goal - current_distance_from_goal
         return progression if progression > 0 else negative_factor * progression
-    
+
     @gin.configurable
-    def calc_reward(self, 
-                    save_in_file=False,
-                    collision_factor = 1.0,
-                    near_collision_factor = 1.0,
-                    speed_factor = 1.0,
-                    angular_factor = 1.0,
-                    proximity_factor = 1.0,
-                    progression_toward_goal_factor = 1.0,
-                    outside_arena_factor = 1.0,
-                    early_completion_factor = 1.0,
-                    reward_all_goals_reached = 500,
-                    reward_single_goal_reached = 200,
-                    ) -> tuple:
+    def calc_reward(
+        self,
+        save_in_file=False,
+        collision_factor=1.0,
+        near_collision_factor=1.0,
+        speed_factor=1.0,
+        angular_factor=1.0,
+        proximity_factor=1.0,
+        progression_toward_goal_factor=1.0,
+        outside_arena_factor=1.0,
+        early_completion_factor=1.0,
+        reward_all_goals_reached=500,
+        reward_single_goal_reached=200,
+    ) -> tuple:
         if len(Human.HUMAN_LIST) != 0:
             distance_from_human = self.robot.distance_from_other_agents(
                 [human.get_position() for human in Human.HUMAN_LIST]
@@ -474,7 +490,11 @@ class CrowdSimCar(gym.Env):
         if all_goals_reached:
             logging.debug("All robot goals are reached!")
             reward += reward_all_goals_reached
-            reward += (self.episode_time - self.global_time) / self.episode_time * early_completion_factor
+            reward += (
+                (self.episode_time - self.global_time)
+                / self.episode_time
+                * early_completion_factor
+            )
             self.all_agent_group.reset()
 
         # logging.debug(f'🎯 distance_from_goal: {is_robot_reach_goal:>7.2f}, 🎯 goal_distance_threshold: {goal_distance_threshold:>7.2f}, 🎯 goal_reached: {goal_reached:>7.2f}')
@@ -575,7 +595,9 @@ class CrowdSimCar(gym.Env):
             )
 
             if self.render_mode == "presentation":
-                pos = self.global_to_relative(np.array(goal), [robotX, robotY], self.robot.orientation)
+                pos = self.global_to_relative(
+                    np.array(goal), [robotX, robotY], self.robot.orientation
+                )
                 ax.text(
                     goal[0],
                     goal[1],
@@ -608,7 +630,9 @@ class CrowdSimCar(gym.Env):
             )
         )
         if self.render_mode == "presentation":
-            pos = self.global_to_relative(np.array([robotX, robotY]), [robotX, robotY], self.robot.orientation)
+            pos = self.global_to_relative(
+                np.array([robotX, robotY]), [robotX, robotY], self.robot.orientation
+            )
             ax.text(
                 robotX,
                 robotY,
@@ -721,9 +745,13 @@ class CrowdSimCar(gym.Env):
                     fc=human_goal_color,
                     ec=human_goal_color,
                 )
-            
+
             if self.render_mode == "presentation":
-                pos = self.global_to_relative(np.array(human.get_position()), [robotX, robotY], self.robot.orientation)
+                pos = self.global_to_relative(
+                    np.array(human.get_position()),
+                    [robotX, robotY],
+                    self.robot.orientation,
+                )
                 ax.text(
                     human.coordinates[0],
                     human.coordinates[1],
@@ -744,11 +772,17 @@ class CrowdSimCar(gym.Env):
             #     self.robot.orientation,
             # )
             agent_visible = self.all_agent_group.filter(lambda x: x.is_visible)
-            visible_agent_by_robot = agent_visible.filter(
-                lambda x: x.id != self.robot.id
-            ).filter(self.robot.can_i_see).get_all()
+            visible_agent_by_robot = (
+                agent_visible.filter(lambda x: x.id != self.robot.id)
+                .filter(self.robot.can_i_see)
+                .get_all()
+            )
             predicted_positions_global_rep = np.zeros(
-                (len(visible_agent_by_robot), self.nb_time_steps_seen_as_graph_feature, 2)
+                (
+                    len(visible_agent_by_robot),
+                    self.nb_time_steps_seen_as_graph_feature,
+                    2,
+                )
             )
             for i, agent in enumerate(visible_agent_by_robot):
                 direction_vector = np.array(agent.speed)
@@ -900,7 +934,7 @@ class CrowdSimCar(gym.Env):
         normal_point = path[0] + d * b / np.linalg.norm(b)
         distance_to_path = np.linalg.norm(position - normal_point)
         # print(f"Distance to path: {distance_to_path}")
-        return distance_to_path 
+        return distance_to_path
 
     def load_front_scenario(self):
         """
@@ -908,9 +942,9 @@ class CrowdSimCar(gym.Env):
         """
         logging.debug("Loading front scenario")
 
-        # in order to make this senario invariant by rotation we 
+        # in order to make this senario invariant by rotation we
         # take a random point and create a mirror point passing by the origin
-        # an at a distance of x 
+        # an at a distance of x
         start_point = np.random.uniform(-5, 5, 2)
         x = 8
         direction = -start_point / np.linalg.norm(start_point)
@@ -944,9 +978,9 @@ class CrowdSimCar(gym.Env):
         """
         logging.debug("Loading back scenario")
 
-        # in order to make this senario invariant by rotation we 
+        # in order to make this senario invariant by rotation we
         # take a random point and create a mirror point passing by the origin
-        # an at a distance of x 
+        # an at a distance of x
         start_point = np.random.uniform(-5, 5, 2)
         x = 8
         direction = -start_point / np.linalg.norm(start_point)

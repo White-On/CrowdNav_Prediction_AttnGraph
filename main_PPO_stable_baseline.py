@@ -10,7 +10,7 @@ import logging
 from logger import logging_setup
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     # parse arguments
     parser = argparse.ArgumentParser()
     # mode eval ou pas
@@ -34,7 +34,7 @@ def create_env(
     nb_goals_agent: int = 5,
     scenario: str = None,
     context_max_size: int = 10,
-):
+) -> gym.Env:
     env = gym.make(
         "CrowdSimCar-v0",
         render_mode="human",
@@ -51,9 +51,9 @@ def create_env(
 
 @gin.configurable(denylist=["env"])
 def init_model(
-    env,
+    env: gym.Env,
     gamma: float = 0.99,
-):
+) -> PPO:
     return PPO(
         "MultiInputPolicy",
         env,
@@ -69,11 +69,11 @@ def init_params(
     episode_time=4000,
     total_timesteps=2_000_000,
     save_every_n_timesteps=10_000,
-):
+) -> tuple:
     return episode_time, total_timesteps, save_every_n_timesteps
 
 
-def main():
+def main() -> None:
     args = parse_args()
     logging_setup(
         "PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO

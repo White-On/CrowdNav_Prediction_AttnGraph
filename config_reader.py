@@ -8,7 +8,7 @@ from argparse import Namespace
 import logging
 
 
-def read_config(pathConfig, listSection=[]) -> Namespace:
+def read_config(pathConfig: Path, listSection=[]) -> Namespace:
     config = {}
     configParser = ConfigParser()
     logging.info(f"Reading config file from {pathConfig}")

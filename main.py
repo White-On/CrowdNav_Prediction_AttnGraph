@@ -18,7 +18,9 @@ import logging
 from logger import logging_setup
 
 
-def train(env, hyperparameters, actor_model, critic_model):
+def train(
+    env: gym.Env, hyperparameters: tuple, actor_model: str, critic_model: str
+) -> None:
     """
     Trains the model.
 
@@ -59,7 +61,7 @@ def train(env, hyperparameters, actor_model, critic_model):
     model.learn(total_timesteps=200_000_000)
 
 
-def test(env, actor_model):
+def test(env: gym.Env, actor_model: str) -> None:
     """
     Tests the model.
 
@@ -95,7 +97,7 @@ def test(env, actor_model):
     eval_policy(policy=policy, env=env, render=True)
 
 
-def main(args):
+def main(args) -> None:
     """
     The main function to run.
 

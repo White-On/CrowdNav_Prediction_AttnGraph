@@ -25,9 +25,9 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         display_future_trajectory=True,
         robot_is_visible=False,
         load_scenario=None,
-        nb_goals_agent = 5,
+        nb_goals_agent=5,
         context_max_size=10,
-    ):
+    ) -> None:
         super().__init__(
             render_mode,
             arena_size,
@@ -68,7 +68,7 @@ class CrowdSimCarComplexObs(CrowdSimCar):
             shape=(self.context_max_size, spatial_edge_dim),
             dtype=np.float32,
         )
-        logging.debug(f'{observation_space}')
+        logging.debug(f"{observation_space}")
         return gymnasium.spaces.Dict(observation_space)
 
     def generate_observation(self) -> dict:
@@ -83,7 +83,8 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         # dim = [num_visible_humans + 1, 2*(self.predict_steps+1)]
         placeholder_value = 0.0
         observation["graph_features"] = np.full(
-            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2), placeholder_value
+            (self.context_max_size, (self.nb_time_steps_seen_as_graph_feature), 2),
+            placeholder_value,
         )
 
         visible_agent_by_robot = agent_visible.filter(
@@ -91,10 +92,13 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         ).filter(self.robot.can_i_see)
 
         # amoung the visible agent, we take only the context_max_size closest agents
-        visible_agent_by_robot = visible_agent_by_robot.sort(
-            lambda x: self.distance_matrix[self.robot.id][x.id]
-        ).limit(self.context_max_size
-        ).get_all()
+        visible_agent_by_robot = (
+            visible_agent_by_robot.sort(
+                lambda x: self.distance_matrix[self.robot.id][x.id]
+            )
+            .limit(self.context_max_size)
+            .get_all()
+        )
 
         # transform the graph features into relative coordinates
         robot_position = np.array(self.robot.get_position())
@@ -116,7 +120,9 @@ class CrowdSimCarComplexObs(CrowdSimCar):
             observation["graph_features"][i] = self.global_to_relative(
                 human_future_traj.reshape(-1, 2), robot_position, robot_rotation
             )
-        observation["graph_features"] = observation["graph_features"].reshape(self.context_max_size, -1)
+        observation["graph_features"] = observation["graph_features"].reshape(
+            self.context_max_size, -1
+        )
         # logging.info(f'{observation["graph_features"].shape}')
         # logging.debug(f"🔵 observation: {observation}")
         return observation
