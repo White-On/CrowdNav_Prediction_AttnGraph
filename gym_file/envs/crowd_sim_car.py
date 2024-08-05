@@ -32,6 +32,7 @@ class CrowdSimCar(gym.Env):
         nb_goals_agent=5,
         context_max_size=15,
         ghost_mode=False,
+        title=None,
     ) -> None:
         self.arena_size = arena_size
         if render_mode not in self.metadata["render_modes"]:
@@ -39,6 +40,8 @@ class CrowdSimCar(gym.Env):
             raise NotImplementedError
         else:
             fig, ax = plt.subplots(figsize=(6, 6))
+            if title is not None:
+                fig.suptitle(title)
             ax.set_xlim(-arena_size, arena_size)
             ax.set_ylim(-arena_size, arena_size)
             ax.axes.xaxis.set_visible(False)

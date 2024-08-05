@@ -14,6 +14,6 @@ create_env.robot_is_visible = False
 create_env.nb_goals_agent = 5
 create_env.scenario = None
 create_env.context_max_size = 1
-create_env.ghost_mode = True
+create_env.ghost_mode = False
 
 compute_progression_toward_goal_reward.negative_factor = 1.0

@@ -13,7 +13,7 @@ create_env.nb_pedestrians = 10
 create_env.robot_is_visible = False
 create_env.nb_goals_agent = 5
 create_env.scenario = None
-create_env.context_max_size = [1, 2, 4]
+create_env.context_max_size = 2
 create_env.ghost_mode = [True, False]
 
 compute_progression_toward_goal_reward.negative_factor = 2.0

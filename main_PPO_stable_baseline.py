@@ -26,6 +26,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def extract_specials_feature(config_file: str) -> str:
+    # the "special features" are always seperated by a double empty line
+    # we read the lines from the bottom to the top and stop when we find the first empty line
+    # we return the special features as a string
+    with open(config_file, "r") as f:
+        lines = f.readlines()
+        special_features = ""
+        for line in reversed(lines):
+            if line == "\n":
+                break
+            clean_line = line.split(".")[1]
+            special_features = clean_line + special_features
+
+    return special_features
+
+
 @gin.configurable
 def create_env(
     episode_time: int,
@@ -35,9 +51,10 @@ def create_env(
     scenario: str = None,
     context_max_size: int = 10,
     ghost_mode: bool = False,
+    title: str = None,
 ) -> gym.Env:
     env = gym.make(
-        "CrowdSimCar-v0",
+        "CrowdSimCar-v2",
         render_mode="human",
         episode_time=episode_time,
         nb_pedestrians=nb_pedestrians,
@@ -47,6 +64,7 @@ def create_env(
         nb_goals_agent=nb_goals_agent,
         context_max_size=context_max_size,
         ghost_mode=ghost_mode,
+        title=title,
     )
     return env
 
@@ -82,17 +100,19 @@ def main() -> None:
     )
     # check if the config file exists
     config_file_exist = Path(args.config).exists()
+    title = None
     if not config_file_exist:
         logging.warning(f"Config file {args.config} does not exist")
     else:
         gin.parse_config_file(args.config)
+        title = extract_specials_feature(args.config)
 
     eval = True if args.eval else False
     episode_time, total_timesteps, save_every_n_timesteps = init_params()
     nb_learnging_cycles = total_timesteps // save_every_n_timesteps
     model_file = args.model
 
-    env = create_env(episode_time)
+    env = create_env(episode_time, title=title)
 
     def linear_schedule(initial_value: float):
         def func(progress_remaining: float) -> float:

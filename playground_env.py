@@ -31,6 +31,7 @@ def create_env(
         nb_goals_agent=nb_goals_agent,
         context_max_size=context_max_size,
         ghost_mode=ghost_mode,
+        title="playground",
     )
     return env
 
