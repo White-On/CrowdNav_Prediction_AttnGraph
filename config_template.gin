@@ -9,11 +9,12 @@ calc_reward.early_completion_factor = 100.0
 calc_reward.reward_all_goals_reached = 500
 calc_reward.reward_single_goal_reached = 200
 
-create_env.nb_pedestrians = 0
-create_env.robot_is_visible = True
+create_env.nb_pedestrians = 10
+create_env.robot_is_visible = False
 create_env.nb_goals_agent = 5
 create_env.scenario = None
-create_env.context_max_size = [1, 2, 4, 8, 16, 32]
+create_env.context_max_size = [1, 2, 4]
+create_env.ghost_mode = [True, False]
 
 compute_progression_toward_goal_reward.negative_factor = 2.0
 
