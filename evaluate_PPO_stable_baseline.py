@@ -127,6 +127,10 @@ def evaluate_model(model_path: Path) -> None:
     title = extract_specials_feature(config_file)
     episode_time, _, _ = init_params()
 
+    # just to have a different seed for each evaluation
+    evaluation_seed = np.random.randint(0, 1000)
+    np.random.seed(evaluation_seed)
+
     env = create_env(
         episode_time,
         title="Evaluate",
@@ -136,17 +140,20 @@ def evaluate_model(model_path: Path) -> None:
     )
     env.reset()
     env.render()
-    total_reward = 0
+    maximum_reward = 0
 
     for _ in range(episode_time):
         action = env.unwrapped.robot.predict_what_to_do()
 
         obs, reward, _, _, _ = env.step(action)
         env.render()
-        total_reward += reward
+        maximum_reward += reward
 
-    logging.info(f"Total reward: {total_reward:.2f}")
+    logging.info(f"Maximum reward: {maximum_reward:.2f}")
     env.close()
+
+    np.random.seed(1001)
+    np.random.seed(evaluation_seed)
 
     env = create_env(episode_time, title=title, learning_state=1.0)
 
@@ -171,10 +178,6 @@ def evaluate_model(model_path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
-    # just to have a different seed for each evaluation
-    # evaluation_seed = np.random.randint(0, 1000)
-    evaluation_seed = 42
-    np.random.seed(evaluation_seed)
     logging_setup(
         "PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO
     )
