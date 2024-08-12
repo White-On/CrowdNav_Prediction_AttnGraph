@@ -106,7 +106,7 @@ class Robot(Agent):
         return distance_to_path
 
     def predict_what_to_do(self, *other_agent_state: list) -> list:
-        acceleration_action = 0.0
+        acceleration_action = (self.desired_speed - self.velocity_norm) / self.delta_t
         theta_action = self.get_angle_from_goal()
         # theta_action = np.pi/6
         # logging.info(np.degrees(theta_action))

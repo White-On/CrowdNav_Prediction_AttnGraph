@@ -154,6 +154,7 @@ def main() -> None:
             tb_log_name=args.log,
         )
         model.save(model_file)
+        n_env.close()
 
     # vec_env = model.get_env()
     # model = PPO.load(model_file)

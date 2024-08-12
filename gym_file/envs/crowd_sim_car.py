@@ -1029,4 +1029,9 @@ class CrowdSimCar(gym.Env):
 
     def close(self):
         plt.close()
+        logging.info(Agent.ENTITIES)
+        Agent.ENTITIES = []
+        Agent.ID_COUNTER = 0
+        Human.HUMAN_LIST = []
+        logging.info(Agent.ENTITIES)
         return super().close()
