@@ -1026,3 +1026,7 @@ class CrowdSimCar(gym.Env):
         logging.debug("Loading random scenario")
         scenario = np.random.choice(self.implemented_scenarios[:-1])
         self.scenarios_collection[scenario]()
+
+    def close(self):
+        plt.close()
+        return super().close()
