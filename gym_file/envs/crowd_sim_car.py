@@ -39,7 +39,7 @@ class CrowdSimCar(gym.Env):
         if render_mode not in self.metadata["render_modes"]:
             logging.error(f"Mode {render_mode} is not supported")
             raise NotImplementedError
-        else:
+        elif render_mode is not None:
             fig, ax = plt.subplots(figsize=(6, 6))
             if title is not None:
                 fig.suptitle(title)
@@ -1028,7 +1028,8 @@ class CrowdSimCar(gym.Env):
         self.scenarios_collection[scenario]()
 
     def close(self):
-        plt.close()
+        if self.render_mode is not None:
+            plt.close()
         Agent.ENTITIES = []
         Agent.ID_COUNTER = 0
         Human.HUMAN_LIST = []

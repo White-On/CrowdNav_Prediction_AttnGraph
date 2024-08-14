@@ -18,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("model", type=str)
     # pour le logger le niveau
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-r", "--render", action="store_true")
     return parser.parse_args()
 
 
@@ -33,7 +34,7 @@ def extract_specials_feature(config_file: str) -> str:
                 break
             clean_line = line.split(".")[1]
             special_features = clean_line + special_features
-
+        special_features = special_features.strip()
     return special_features
 
 
@@ -57,10 +58,11 @@ def create_env(
     ghost_mode: bool = False,
     title: str = None,
     learning_state: float = 1.0,
+    render_mode: str = "human",
 ) -> gym.Env:
     env = gym.make(
         "CrowdSimCar-v2",
-        render_mode="human",
+        render_mode=render_mode,
         episode_time=episode_time,
         nb_pedestrians=nb_pedestrians,
         disable_env_checker=True,
@@ -90,17 +92,7 @@ def init_model(
     )
 
 
-@gin.configurable
-def init_params(
-    episode_time=400,
-    total_timesteps=2_000_000,
-    save_every_n_timesteps=10_000,
-) -> tuple:
-    return episode_time, total_timesteps, save_every_n_timesteps
-
-
-def evaluate_model(model_path: Path) -> None:
-    logging.info(f"Evaluating model {model_path}")
+def get_model_files(model_path: Path) -> tuple:
     config_file = list(model_path.glob("*.gin"))[0]
     is_config_file_exist = config_file.exists()
     if not is_config_file_exist:
@@ -121,7 +113,21 @@ def evaluate_model(model_path: Path) -> None:
         or not is_model_file_exist
         or not is_tensorboard_log_exist
     ):
-        return
+        return None
+
+    return config_file, model_file, tensorboard_log
+
+
+@gin.configurable
+def init_params(
+    episode_time=400,
+    total_timesteps=2_000_000,
+    save_every_n_timesteps=10_000,
+) -> tuple:
+    return episode_time, total_timesteps, save_every_n_timesteps
+
+
+def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
 
     gin.parse_config_file(config_file)
     title = extract_specials_feature(config_file)
@@ -137,25 +143,26 @@ def evaluate_model(model_path: Path) -> None:
         learning_state=1.0,
         ghost_mode=True,
         nb_pedestrians=0,
+        render_mode=None,
     )
     env.reset()
-    env.render()
     maximum_reward = 0
 
     for _ in range(episode_time):
         action = env.unwrapped.robot.predict_what_to_do()
 
         obs, reward, _, _, _ = env.step(action)
-        env.render()
         maximum_reward += reward
 
-    logging.info(f"Maximum reward: {maximum_reward:.2f}")
+    logging.debug(f"Maximum reward: {maximum_reward:.2f}")
     env.close()
 
     np.random.seed(1001)
     np.random.seed(evaluation_seed)
-
-    env = create_env(episode_time, title=title, learning_state=1.0)
+    render_mode = "human" if render else None
+    env = create_env(
+        episode_time, title=title, learning_state=1.0, render_mode=render_mode
+    )
 
     model = init_model(env)
 
@@ -167,13 +174,15 @@ def evaluate_model(model_path: Path) -> None:
     for _ in range(episode_time):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = env.step(action)
-        env.render()
+        if render:
+            env.render()
         # logging.debug(f"{obs = }")
         total_reward += rewards
 
-    logging.info(f"Total reward: {total_reward[0]}")
+    logging.debug(f"Total reward: {total_reward[0]}")
 
     env.close()
+    return maximum_reward, total_reward[0]
 
 
 def main() -> None:
@@ -184,7 +193,6 @@ def main() -> None:
     # check if the config file exists
     main_model_file = Path(args.model)
     is_model_file_exist = main_model_file.exists()
-    title = None
     if not is_model_file_exist:
         logging.warning(f"Model file {main_model_file} does not exist")
         raise FileNotFoundError
@@ -192,9 +200,38 @@ def main() -> None:
     # list the directory in the main_model_file
     all_models_path = list(main_model_file.iterdir())
     logging.debug(f"{all_models_path = }")
+    do_render = args.render
+    nb_reapeat = 100
 
     for model_path in all_models_path:
-        evaluate_model(model_path)
+        logging.info(f"Evaluating model {model_path}")
+        maximum_reward_list = []
+        model_cumulative_reward_list = []
+
+        core_paths = get_model_files(model_path)
+        if core_paths is None:
+            continue
+        config_file, model_file, tensorboard_log = core_paths
+        title = extract_specials_feature(config_file).replace("\n", ", ")
+        logging.info(f"Title: {title}")
+
+        for _ in range(nb_reapeat):
+            maximum_reward, model_cumulative_reward = evaluate_model(
+                config_file, model_file, do_render
+            )
+            maximum_reward_list.append(maximum_reward)
+            model_cumulative_reward_list.append(model_cumulative_reward)
+
+        model_cumulative_reward_list = np.array(model_cumulative_reward_list)
+        maximum_reward_list = np.array(maximum_reward_list)
+        logging.info(f"Model: {model_path}")
+        logging.info(f"Maximum reward: {maximum_reward_list.mean():.2f}")
+        logging.info(
+            f"Model cumulative reward: {model_cumulative_reward_list.mean():.2f}"
+        )
+        logging.info(
+            f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}"
+        )
 
     logging.info("All models have been evaluated")
 
