@@ -9,6 +9,7 @@ from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 import logging
 from logger import logging_setup
+from tqdm import tqdm
 
 
 def parse_args() -> argparse.Namespace:
@@ -85,7 +86,7 @@ def init_model(
     return PPO(
         "MultiInputPolicy",
         env,
-        verbose=1,
+        verbose=0,
         tensorboard_log="runs",
         gamma=gamma,
         # learning_rate=linear_schedule(1e-3),
@@ -167,7 +168,7 @@ def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
     model = init_model(env)
 
     env = model.get_env()
-    model = PPO.load(model_file)
+    model = model.load(model_file)
     obs = env.reset()
     total_reward = 0
 
@@ -215,12 +216,15 @@ def main() -> None:
         title = extract_specials_feature(config_file).replace("\n", ", ")
         logging.info(f"Title: {title}")
 
+        progress_bar = tqdm(range(nb_reapeat), desc="Evaluating model", ncols=100)
         for _ in range(nb_reapeat):
+            progress_bar.update(1)
             maximum_reward, model_cumulative_reward = evaluate_model(
                 config_file, model_file, do_render
             )
             maximum_reward_list.append(maximum_reward)
             model_cumulative_reward_list.append(model_cumulative_reward)
+        progress_bar.close()
 
         model_cumulative_reward_list = np.array(model_cumulative_reward_list)
         maximum_reward_list = np.array(maximum_reward_list)
@@ -230,7 +234,7 @@ def main() -> None:
             f"Model cumulative reward: {model_cumulative_reward_list.mean():.2f}"
         )
         logging.info(
-            f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}"
+            f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}\n"
         )
 
     logging.info("All models have been evaluated")
