@@ -4,12 +4,15 @@ import gymnasium as gym
 import argparse
 import gin
 import numpy as np
+import pandas as pd
 
 from gym_file.envs.crowd_sim_car import CrowdSimCar
 from gym_file.envs.crowd_sim_car_simple_obs import CrowdSimCarSimpleObs
 import logging
 from logger import logging_setup
 from tqdm import tqdm
+from rich.console import Console
+from rich.markdown import Markdown
 
 
 def parse_args() -> argparse.Namespace:
@@ -203,6 +206,15 @@ def main() -> None:
     logging.debug(f"{all_models_path = }")
     do_render = args.render
     nb_reapeat = 100
+    df_results = pd.DataFrame(
+        columns=[
+            "model",
+            "title",
+            "maximum_reward",
+            "model_cumulative_reward",
+            "performance",
+        ]
+    )
 
     for model_path in all_models_path:
         logging.info(f"Evaluating model {model_path}")
@@ -236,6 +248,23 @@ def main() -> None:
         logging.info(
             f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}\n"
         )
+        df_results.loc[len(df_results)] = {
+            "model": model_path,
+            "title": title,
+            "maximum_reward": maximum_reward_list.mean(),
+            "model_cumulative_reward": model_cumulative_reward_list.mean(),
+            "performance": 100
+            * model_cumulative_reward_list.mean()
+            / maximum_reward_list.mean(),
+        }
+
+    # sort the dataframe by performance
+    df_results = df_results.sort_values(by="performance", ascending=False)
+    markdown_table = df_results.to_markdown(index=False)
+    Console().print(Markdown(markdown_table))
+    result_file = main_model_file / "results.md"
+    with open(result_file, "w") as f:
+        f.write(markdown_table)
 
     logging.info("All models have been evaluated")
 

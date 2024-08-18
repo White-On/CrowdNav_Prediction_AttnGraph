@@ -335,22 +335,33 @@ class CrowdSimCar(gym.Env):
         else:
             return 0.0
 
+    # def compute_near_collision_reward(self, distance_from_human: float) -> float:
+    #     min_distance_to_keep_from_human = 1.5
+    #     distance_to_closest_human = np.min(distance_from_human)
+    #     if distance_to_closest_human > self.robot.sensor_range:
+    #         return 0.0
+    #     vehicle_current_speed = self.robot.velocity_norm
+    #     vehicle_min_acceleration = self.robot.acceleration_limits[0]
+
+    #     dr = np.max(
+    #         [
+    #             min_distance_to_keep_from_human,
+    #             (vehicle_current_speed**2.0) / (2.0 * vehicle_min_acceleration),
+    #         ]
+    #     )
+
+    #     return np.exp((distance_to_closest_human - dr) / dr) * vehicle_current_speed
+    @staticmethod
+    def gaussian_density(x, mu, sigma):
+        return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-0.5 * (x - mu) ** 2 / sigma)
+
     def compute_near_collision_reward(self, distance_from_human: float) -> float:
-        min_distance_to_keep_from_human = 1.5
-        distance_to_closest_human = np.min(distance_from_human)
-        if distance_to_closest_human > self.robot.sensor_range:
-            return 0.0
-        vehicle_current_speed = self.robot.velocity_norm
-        vehicle_min_acceleration = self.robot.acceleration_limits[0]
-
-        dr = np.max(
-            [
-                min_distance_to_keep_from_human,
-                (vehicle_current_speed**2.0) / (2.0 * vehicle_min_acceleration),
-            ]
-        )
-
-        return np.exp((distance_to_closest_human - dr) / dr) * vehicle_current_speed
+        sigma = 0.5
+        mean_safe_distance = 1.5
+        if distance_from_human < mean_safe_distance - sigma * 3:
+            return -np.exp(-distance_from_human)
+        else:
+            return self.gaussian_density(distance_from_human, mean_safe_distance, sigma)
 
     # OLD FORMULA
     # def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:

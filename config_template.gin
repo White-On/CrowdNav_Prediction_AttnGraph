@@ -1,5 +1,5 @@
 calc_reward.collision_factor = 4.0
-calc_reward.near_collision_factor = 0.0
+calc_reward.near_collision_factor = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0]
 calc_reward.speed_factor = 1.0
 calc_reward.angular_factor = 1.0
 calc_reward.proximity_factor = 1.0
@@ -9,12 +9,12 @@ calc_reward.early_completion_factor = 100.0
 calc_reward.reward_all_goals_reached = 500
 calc_reward.reward_single_goal_reached = 200
 
-create_env.nb_pedestrians = [5,6,7,8,9,10]
+create_env.nb_pedestrians = 7
 create_env.robot_is_visible = False
 create_env.nb_goals_agent = 5
 create_env.scenario = None
 create_env.context_max_size = 2
-create_env.ghost_mode = [True, False]
+create_env.ghost_mode = True
 
 compute_progression_toward_goal_reward.negative_factor = 2.0
 
