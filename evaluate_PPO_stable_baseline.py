@@ -13,6 +13,7 @@ from logger import logging_setup
 from tqdm import tqdm
 from rich.console import Console
 from rich.markdown import Markdown
+import chime
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,7 +37,7 @@ def extract_specials_feature(config_file: str) -> str:
         for line in reversed(lines):
             if line == "\n":
                 break
-            clean_line = line.split(".")[1]
+            clean_line = line.split(".", maxsplit=1)[1]
             special_features = clean_line + special_features
         special_features = special_features.strip()
     return special_features
@@ -154,7 +155,6 @@ def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
 
     for _ in range(episode_time):
         action = env.unwrapped.robot.predict_what_to_do()
-
         obs, reward, _, _, _ = env.step(action)
         maximum_reward += reward
 
@@ -191,6 +191,7 @@ def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
 
 def main() -> None:
     args = parse_args()
+    chime.theme("pokemon")
     logging_setup(
         "PPO_evaluation.log", level=logging.DEBUG if args.verbose else logging.INFO
     )
@@ -199,13 +200,16 @@ def main() -> None:
     is_model_file_exist = main_model_file.exists()
     if not is_model_file_exist:
         logging.warning(f"Model file {main_model_file} does not exist")
+        chime.error()
         raise FileNotFoundError
 
     # list the directory in the main_model_file
     all_models_path = list(main_model_file.iterdir())
+    # filter out the potential files
+    all_models_path = [model for model in all_models_path if model.is_dir()]
     logging.debug(f"{all_models_path = }")
     do_render = args.render
-    nb_reapeat = 100
+    nb_reapeat = 100 if not do_render else 1
     df_results = pd.DataFrame(
         columns=[
             "model",
@@ -267,6 +271,7 @@ def main() -> None:
         f.write(markdown_table)
 
     logging.info("All models have been evaluated")
+    chime.success()
 
 
 if __name__ == "__main__":

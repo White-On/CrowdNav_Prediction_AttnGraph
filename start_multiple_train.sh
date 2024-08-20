@@ -55,7 +55,8 @@ for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
     I=$((I+1))
     MODEL_NAME="${BASE_MODEL_NAME}_${I}"
     LOG_FILE="${BASE_LOG_FILE}_${I}"
-    python $PYTHON_SCRIPT --config $CONFIG_FILE --model $MODEL_NAME --log $LOG_FILE > /dev/null 2>&1 &
+    # python $PYTHON_SCRIPT --config $CONFIG_FILE --model $MODEL_NAME --log $LOG_FILE > /dev/null 2>&1 &
+    python $PYTHON_SCRIPT --config $CONFIG_FILE --model $MODEL_NAME --log $LOG_FILE > debug_multiple.log &
 done
 
 # Attendre que tous les scripts Python se terminent

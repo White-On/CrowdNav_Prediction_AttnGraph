@@ -155,16 +155,6 @@ def main() -> None:
         )
         model.save(model_file)
         n_env.close()
-
-    # vec_env = model.get_env()
-    # model = PPO.load(model_file)
-
-    # obs = vec_env.reset()
-
-    # for _ in range(episode_time):
-    #     action, _states = model.predict(obs)
-    #     obs, rewards, dones, info = vec_env.step(action)
-    #     vec_env.render()
     env.close()
 
 

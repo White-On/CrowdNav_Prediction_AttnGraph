@@ -71,14 +71,13 @@ class Human(Agent):
         # just for redability
         params = [neighbor_dist, max_neighbors, timehorizon, time_horizon_obst]
 
-        speed_factor = 1
         goal_coordinates = np.array(self.goal_coordinates)
         human_coordinates = np.array(self.coordinates)
         velocity_toward_goal = goal_coordinates - human_coordinates
         normalized_velocity = velocity_toward_goal / np.linalg.norm(
             velocity_toward_goal
         )
-        speed_to_take = speed_factor * normalized_velocity
+        speed_to_take = self.desired_speed * normalized_velocity
 
         no_neighbors = max_neighbors == 0
         if no_neighbors:

@@ -85,7 +85,7 @@ class CrowdSimCar(gym.Env):
                 self.time_step,
                 arena_size=arena_size,
                 sensor_range=sensor_range,
-                desired_speed=0.7,
+                desired_speed=0.1,
             )
 
         self.goal_threshold_distance = self.robot.radius
@@ -335,6 +335,7 @@ class CrowdSimCar(gym.Env):
         else:
             return 0.0
 
+    # OLD attempts
     # def compute_near_collision_reward(self, distance_from_human: list) -> float:
     #     min_distance_to_keep_from_human = 1.5
     #     distance_to_closest_human = np.min(distance_from_human)
@@ -351,22 +352,26 @@ class CrowdSimCar(gym.Env):
     #     )
 
     #     return np.exp((distance_to_closest_human - dr) / dr) * vehicle_current_speed
-    @staticmethod
-    def gaussian_density(x, mu, sigma):
-        return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-0.5 * (x - mu) ** 2 / sigma)
+    # @staticmethod
+    # def gaussian_density(x, mu, sigma):
+    #     return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-0.5 * (x - mu) ** 2 / sigma)
+
+    # def compute_near_collision_reward(self, distance_from_human: list) -> float:
+    #     sigma = 0.5
+    #     mean_safe_distance = 1.5
+    #     distance_to_closest_human = np.min(distance_from_human)
+    #     if distance_to_closest_human > self.robot.sensor_range:
+    #         return 0.0
+    #     if distance_to_closest_human < mean_safe_distance - sigma * 3:
+    #         return -np.exp(-distance_to_closest_human)
+    #     else:
+    #         return self.gaussian_density(
+    #             distance_to_closest_human, mean_safe_distance, sigma
+    #         )
 
     def compute_near_collision_reward(self, distance_from_human: list) -> float:
-        sigma = 0.5
-        mean_safe_distance = 1.5
         distance_to_closest_human = np.min(distance_from_human)
-        if distance_to_closest_human > self.robot.sensor_range:
-            return 0.0
-        if distance_to_closest_human < mean_safe_distance - sigma * 3:
-            return -np.exp(-distance_to_closest_human)
-        else:
-            return self.gaussian_density(
-                distance_to_closest_human, mean_safe_distance, sigma
-            )
+        return -np.exp(-distance_to_closest_human)
 
     # OLD FORMULA
     # def compute_speed_reward(self,current_speed:float, pref_speed:float)->float:
@@ -464,15 +469,6 @@ class CrowdSimCar(gym.Env):
 
         self.past_distance_from_goal = current_distance_from_goal
 
-        # collision_factor = 4
-        # near_collision_factor = 0.0
-        # speed_factor = 0.0
-        # angular_factor = 0.0
-        # proximity_factor = 0.0
-        # progression_toward_goal_factor = 30
-        # outside_arena_factor = 0.0
-        # early_completion_factor = 100
-
         collision_reward *= collision_factor * self.learning_state
         near_collision_reward *= near_collision_factor
         speed_reward *= speed_factor
@@ -553,6 +549,78 @@ class CrowdSimCar(gym.Env):
         )
 
         return reward, done, episode_info
+
+    def compute_evaluation_score(self) -> float:
+        """
+        Compute a score to evaluate the performance of the agent
+        """
+        if len(Human.HUMAN_LIST) != 0:
+            distance_from_human = self.robot.distance_from_other_agents(
+                [human.get_position() for human in Human.HUMAN_LIST]
+            )
+
+            collision_reward = self.compute_collision_reward(distance_from_human)
+        else:
+            collision_reward = 0
+
+        speed_reward = self.compute_speed_reward(
+            self.robot.velocity_norm, self.robot.desired_speed
+        )
+        angle_from_goal = np.abs(self.robot.get_angle_from_goal())
+        angular_reward = self.compute_angular_reward(np.degrees(angle_from_goal))
+
+        current_goal_coordinates = self.robot.get_current_visible_goal()
+        if current_goal_coordinates is None:
+            current_distance_from_goal = 0
+        else:
+            current_distance_from_goal = np.linalg.norm(
+                np.array(self.robot.coordinates) - np.array(current_goal_coordinates)
+            )
+        distance_from_path = self.robot.get_distance_from_path()
+        proximity_reward = self.compute_proximity_reward(distance_from_path)
+
+        if self.past_distance_from_goal is None:
+            progression_toward_goal_reward = 0.0
+        else:
+            progression_toward_goal_reward = (
+                self.compute_progression_toward_goal_reward(
+                    current_distance_from_goal, self.past_distance_from_goal
+                )
+            )
+
+        collision_reward *= (
+            gin.query_parameter("calc_reward.collision_factor") * self.learning_state
+        )
+        speed_reward *= gin.query_parameter("calc_reward.speed_factor")
+        angular_reward *= gin.query_parameter("calc_reward.angular_factor")
+        proximity_reward *= gin.query_parameter("calc_reward.proximity_factor")
+        progression_toward_goal_reward *= gin.query_parameter(
+            "calc_reward.progression_toward_goal_factor"
+        )
+
+        reward = (
+            collision_reward
+            + speed_reward
+            + angular_reward
+            + proximity_reward
+            + progression_toward_goal_reward
+        )
+
+        is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
+        if is_robot_reach_goal:
+            reward += gin.query_parameter("calc_reward.reward_single_goal_reached")
+        all_goals_reached = self.robot.current_goal_cusor >= len(
+            self.robot.collection_goal_coordinates
+        )
+        if all_goals_reached:
+            reward += gin.query_parameter("calc_reward.reward_all_goals_reached")
+            reward += (
+                (self.episode_time - self.global_time)
+                / self.episode_time
+                * gin.query_parameter("calc_reward.early_completion_factor")
+            )
+
+        return reward
 
     def _render_frame(self) -> None:
         """
