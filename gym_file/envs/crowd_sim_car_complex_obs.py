@@ -60,7 +60,7 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         # current position -> 2 coordinates
         # goal position -> 2 coordinates * forseen_index <- how many steps we want to see in the future
         observation_space["robot_node"] = gymnasium.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(2 + forseen_index * 2,), dtype=np.float32
+            low=-1, high=1, shape=(2 + forseen_index * 2,), dtype=np.float32
         )
 
         # predictions only include mu_x, mu_y (or px, py)
@@ -69,8 +69,8 @@ class CrowdSimCarComplexObs(CrowdSimCar):
         # Here this should be a graph to go inside the GNN but for now we will use a matrix
         # To make sure there wont be any overload, we use the context_max_size
         observation_space["graph_features"] = gymnasium.spaces.Box(
-            low=-np.inf,
-            high=np.inf,
+            low=-1,
+            high=1,
             shape=(self.context_max_size, spatial_edge_dim),
             dtype=np.float32,
         )
@@ -128,6 +128,11 @@ class CrowdSimCarComplexObs(CrowdSimCar):
             )
         observation["graph_features"] = observation["graph_features"].reshape(
             self.context_max_size, -1
+        )
+        # we normalize the graph features according to the maximum distance
+        # between the robot and the visible agents
+        observation["graph_features"] = (
+            observation["graph_features"] / self.robot.sensor_range
         )
         # logging.info(f'{observation["graph_features"].shape}')
         # logging.debug(f"🔵 observation: {observation}")

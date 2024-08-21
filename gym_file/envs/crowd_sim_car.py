@@ -60,7 +60,7 @@ class CrowdSimCar(gym.Env):
 
         self.episode_time = episode_time
         self.time_step = time_step
-        self.nb_time_steps_seen_as_graph_feature = 5
+        self.nb_time_steps_seen_as_graph_feature = 1
         self.nb_forseen_goal = 1
         self.context_max_size = context_max_size
         self.ghost_mode = ghost_mode
@@ -163,6 +163,7 @@ class CrowdSimCar(gym.Env):
         action_space_boundries = np.vstack(
             (vehicle_speed_boundries, vehicle_angle_boundries)
         )
+        return gymnasium.spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
         return gymnasium.spaces.Box(
             action_space_boundries[:, 0], action_space_boundries[:, 1], dtype=np.float32
         )
@@ -239,6 +240,15 @@ class CrowdSimCar(gym.Env):
                 human.goal_coordinates = human.set_random_goal()
 
         # Robot step
+        # unnormalize the action
+        vehicle_speed_boundries = [-0.2, 0.2]
+        limit_angle = np.pi / 6
+        vehicle_angle_boundries = [-limit_angle, limit_angle]
+
+        action_speed = np.interp(robot_action[0], [-1.0, 1.0], vehicle_speed_boundries)
+        action_angle = np.interp(robot_action[1], [-1.0, 1.0], vehicle_angle_boundries)
+        robot_action = np.array([action_speed, action_angle])
+
         self.robot.step(robot_action)
 
         # I put this in reward calculation

@@ -81,6 +81,10 @@ def main():
                 # action[1] = random_angle
                 # action[1] = -np.pi / 6
 
+            # normalizing the action
+
+            action[0] = np.interp(action[0], [-0.2, 0.2], [-1, 1])
+            action[1] = np.interp(action[1], [-np.pi / 6, np.pi / 6], [-1, 1])
             obs, reward, done, truncated, info = env.step(action)
             total_reward += reward
             env.render()
@@ -88,7 +92,7 @@ def main():
             if isinstance(obs, list):
                 obs = np.array(obs)
 
-            # logging.info(f"{obs = }")
+            logging.info(f"{obs = }")
             # logging.info(f"{obs['robot_node'][2:] = }")
             # logging.info(
             #     f"Step: {step+1}, reward: {reward:.2f}, done: {done}, status: {info['info']}"
