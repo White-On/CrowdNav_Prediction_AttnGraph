@@ -174,6 +174,7 @@ def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
     model = model.load(model_file)
     obs = env.reset()
     total_reward = 0
+    collision_free_episode = True
 
     for _ in range(episode_time):
         action, _states = model.predict(obs)
@@ -181,12 +182,14 @@ def evaluate_model(config_file: Path, model_file: Path, render: True) -> tuple:
         if render:
             env.render()
         # logging.debug(f"{obs = }")
+        if info[0]["info"] == "Collision" or info[0]["info"] == "GhostModeCollision":
+            collision_free_episode = False
         total_reward += rewards
 
     logging.debug(f"Total reward: {total_reward[0]}")
 
     env.close()
-    return maximum_reward, total_reward[0]
+    return maximum_reward, total_reward[0], collision_free_episode
 
 
 def main() -> None:
@@ -217,6 +220,7 @@ def main() -> None:
             "maximum_reward",
             "model_cumulative_reward",
             "performance",
+            "collision_free_episode",
         ]
     )
 
@@ -224,6 +228,7 @@ def main() -> None:
         logging.info(f"Evaluating model {model_path}")
         maximum_reward_list = []
         model_cumulative_reward_list = []
+        collision_free_episode_list = []
 
         core_paths = get_model_files(model_path)
         if core_paths is None:
@@ -235,23 +240,31 @@ def main() -> None:
         progress_bar = tqdm(range(nb_reapeat), desc="Evaluating model", ncols=100)
         for _ in range(nb_reapeat):
             progress_bar.update(1)
-            maximum_reward, model_cumulative_reward = evaluate_model(
-                config_file, model_file, do_render
-            )
+            (
+                maximum_reward,
+                model_cumulative_reward,
+                collision_free_episode,
+            ) = evaluate_model(config_file, model_file, do_render)
             maximum_reward_list.append(maximum_reward)
             model_cumulative_reward_list.append(model_cumulative_reward)
+            collision_free_episode_list.append(collision_free_episode)
         progress_bar.close()
 
         model_cumulative_reward_list = np.array(model_cumulative_reward_list)
         maximum_reward_list = np.array(maximum_reward_list)
+        collision_free_episode_list = np.array(collision_free_episode_list)
         logging.info(f"Model: {model_path}")
         logging.info(f"Maximum reward: {maximum_reward_list.mean():.2f}")
         logging.info(
             f"Model cumulative reward: {model_cumulative_reward_list.mean():.2f}"
         )
         logging.info(
-            f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}\n"
+            f"Performance: {model_cumulative_reward_list.mean() / maximum_reward_list.mean():.2%}"
         )
+        logging.info(
+            f"Collision free episode: {collision_free_episode_list.mean():.2%}\n"
+        )
+
         df_results.loc[len(df_results)] = {
             "model": model_path,
             "title": title,
@@ -260,6 +273,7 @@ def main() -> None:
             "performance": 100
             * model_cumulative_reward_list.mean()
             / maximum_reward_list.mean(),
+            "collision_free_episode": collision_free_episode_list.mean() * 100,
         }
 
     # sort the dataframe by performance

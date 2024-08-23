@@ -505,10 +505,12 @@ class CrowdSimCar(gym.Env):
 
         episode_timeout = self.global_time >= self.episode_time - 1
         collision_happened = collision_reward < 0
+        ghost_mode_collision_happened = False
         if self.ghost_mode and collision_happened:
             # if ghost mode is activated, the collision is not the end of the episode
             # but it will be a negative reward
             collision_happened = False
+            ghost_mode_collision_happened = True
 
         is_robot_reach_goal = self.robot.is_goal_reached(self.goal_threshold_distance)
         if is_robot_reach_goal:
@@ -544,7 +546,10 @@ class CrowdSimCar(gym.Env):
                 break
         else:
             done = False
-            episode_info = "Nothing"
+            if ghost_mode_collision_happened:
+                episode_info = "GhostModeCollision"
+            else:
+                episode_info = "Nothing"
 
         logging.debug(
             f"💥collision_reward: {collision_reward:>7.2f},\n\
