@@ -283,6 +283,12 @@ def main() -> None:
     result_file = main_model_file / "results.md"
     with open(result_file, "w") as f:
         f.write(markdown_table)
+        f.write("\n")
+        # we add the gin config too
+        f.write(f"```gin\n")
+        with open(config_file, "r") as config:
+            f.write(config.read())
+        f.write(f"```")
 
     logging.info("All models have been evaluated")
     chime.success()

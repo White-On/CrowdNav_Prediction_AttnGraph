@@ -60,7 +60,7 @@ class CrowdSimCar(gym.Env):
 
         self.episode_time = episode_time
         self.time_step = time_step
-        self.nb_time_steps_seen_as_graph_feature = 1
+        self.nb_time_steps_seen_as_graph_feature = 5
         self.nb_forseen_goal = 1
         self.context_max_size = context_max_size
         self.ghost_mode = ghost_mode
@@ -85,7 +85,7 @@ class CrowdSimCar(gym.Env):
                 self.time_step,
                 arena_size=arena_size,
                 sensor_range=sensor_range,
-                desired_speed=0.1,
+                desired_speed=0.7,
             )
 
         self.goal_threshold_distance = self.robot.radius
